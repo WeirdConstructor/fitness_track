@@ -47,21 +47,32 @@
 
 !setup_db = {
     db:connect_sqlite "fitness.sqlite";
+
+    db:exec $q"
+        CREATE TABLE IF NOT EXISTS sub_items (
+            id          INTEGER NOT NULL,
+            item_id     INTEGER,
+            unit        TEXT DEFAULT 'p',
+            amount      INTEGER NOT NULL DEFAULT 1,
+            CONSTRAINT item_fk FOREIGN KEY (id) REFERENCES item(id)
+            CONSTRAINT sub_item_fk FOREIGN KEY (item_id) REFERENCES item(id)
+        );
+    ";
+
     db:exec $q"
         CREATE TABLE IF NOT EXISTS item (
-            id      INTEGER PRIMARY KEY,
-            parent  INTEGER,
-            name    TEXT,
-            ctime   TEXT DEFAULT (datetime('now')),
-            mtime   TEXT DEFAULT (datetime('now')),
-            unit    TEXT DEFAULT 'g',
-            g       INTEGER NOT NULL DEFAULT 100,
-            kcal    INTEGER NOT NULL,
-            carbs   INTEGER NOT NULL,
-            fat     INTEGER NOT NULL,
-            protein INTEGER NOT NULL,
-            deleted INTEGER NOT NULL DEFAULT 0,
-            CONSTRAINT parent_fk FOREIGN KEY (parent) REFERENCES item(id)
+            id          INTEGER PRIMARY KEY,
+            name        TEXT,
+            ctime       TEXT DEFAULT (datetime('now')),
+            mtime       TEXT DEFAULT (datetime('now')),
+            unit        TEXT DEFAULT 'g',
+            amount      INTEGER NOT NULL DEFAULT 100,
+            amount_vals INTEGER NOT NULL DEFAULT 100,
+            kcal        INTEGER NOT NULL,
+            carbs       INTEGER NOT NULL,
+            fat         INTEGER NOT NULL,
+            protein     INTEGER NOT NULL,
+            deleted     INTEGER NOT NULL DEFAULT 0
         );
     ";
 
@@ -81,9 +92,11 @@
     db:exec $q"
         CREATE TABLE IF NOT EXISTS journal_meals (
             id           INTEGER NOT NULL,
-            item_id      INTEGER NOT NULL,
             ctime        TEXT DEFAULT (datetime('now')),
-            CONSTRAINT journal_id_fk FOREIGN KEY (id) REFERENCES journal(id)
+            item_id      INTEGER NOT NULL,
+            unit         TEXT DEFAULT 'p',
+            amount       INTEGER NOT NULL DEFAULT 1,
+            CONSTRAINT journal_id_fk FOREIGN KEY (id)      REFERENCES journal(id)
             CONSTRAINT item_id_fk    FOREIGN KEY (item_id) REFERENCES item(id)
         );
     ";
