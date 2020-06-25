@@ -27,8 +27,8 @@
     !data = block :from_req {
         !t = std:str:cat method ":" path;
         match t
-            $r#GET\:/fitness/search/last# { return :from_req $["ok"]; }
-        $e $["No URL Handler!", t];
+            $r#GET\:\/fitness\/search\/last# => { return :from_req $["ok"]; }
+            $e $["No URL Handler!", t];
     };
 
     std:displayln "RET[" data "]";
@@ -55,13 +55,55 @@
             ctime   TEXT DEFAULT (datetime('now')),
             mtime   TEXT DEFAULT (datetime('now')),
             unit    TEXT DEFAULT 'g',
-            dim     INTEGER NOT NULL DEFAULT 100,
+            g       INTEGER NOT NULL DEFAULT 100,
             kcal    INTEGER NOT NULL,
             carbs   INTEGER NOT NULL,
             fat     INTEGER NOT NULL,
             protein INTEGER NOT NULL,
             deleted INTEGER NOT NULL DEFAULT 0,
             CONSTRAINT parent_fk FOREIGN KEY (parent) REFERENCES item(id)
+        );
+    ";
+
+    db:exec $q"
+        CREATE TABLE IF NOT EXISTS journal (
+            id              INTEGER PRIMARY KEY,
+            date            TEXT DEFAULT (datetime('now')),
+            goal_kcal       INTEGER NOT NULL,
+            goal_carbs      INTEGER NOT NULL,
+            goal_fat        INTEGER NOT NULL,
+            goal_protein    INTEGER NOT NULL,
+            goal_water_ml   INTEGER NOT NULL,
+            deleted INTEGER NOT NULL DEFAULT 0
+        );
+    ";
+
+    db:exec $q"
+        CREATE TABLE IF NOT EXISTS journal_meals (
+            id           INTEGER NOT NULL,
+            item_id      INTEGER NOT NULL,
+            ctime        TEXT DEFAULT (datetime('now')),
+            CONSTRAINT journal_id_fk FOREIGN KEY (id) REFERENCES journal(id)
+            CONSTRAINT item_id_fk    FOREIGN KEY (item_id) REFERENCES item(id)
+        );
+    ";
+
+    db:exec $q"
+        CREATE TABLE IF NOT EXISTS journal_drink (
+            id           INTEGER NOT NULL,
+            amount_ml    INTEGER NOT NULL,
+            ctime        TEXT DEFAULT (datetime('now')),
+            CONSTRAINT journal_id_fk FOREIGN KEY (id) REFERENCES journal(id)
+        );
+    ";
+
+    db:exec $q"
+        CREATE TABLE IF NOT EXISTS journal_trainings (
+            id           INTEGER NOT NULL,
+            comment      TEXT,
+            kcal         INTEGER NOT NULL,
+            ctime        TEXT DEFAULT (datetime('now')),
+            CONSTRAINT journal_id_fk FOREIGN KEY (id) REFERENCES journal(id)
         );
     ";
 
