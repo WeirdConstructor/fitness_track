@@ -21,6 +21,63 @@
 #    r.0
 #};
 
+!item_cache = $none;
+
+!add_scaled_value = {!(item, src_item, key, amount_g, base_g) = @;
+    item.(key) = item.(key) + ((src_item.(key) * amount_g) / base_g);
+};
+
+!add_g_of_item_to = {!(to_item, src_item, amount_g) = @;
+    !item_base_g = to_item.amount_vals;
+    !base_g      = src_item.amount_vals;
+
+    add_scaled_value to_item src_item :kcal    amount_g base_g;
+    add_scaled_value to_item src_item :carbs   amount_g base_g;
+    add_scaled_value to_item src_item :fat     amount_g base_g;
+    add_scaled_value to_item src_item :protein amount_g base_g;
+};
+
+!calc_item_values = $none;
+
+!calc_item_values = {!(item, sub_item_map, seen_ids) = @;
+    std:displayln "ITEM: " item;
+    ? seen_ids.(item.id) \return $n;
+    seen_ids.(item.id) = $t;
+
+    !sub_items = sub_item_map.(item.id);
+    ? not[sub_items] \return $n;
+
+    item.amount_vals = 10000;
+    item.kcal        = 0;
+    item.carbs       = 0;
+    item.fat         = 0;
+    item.protein     = 0;
+
+    iter si sub_items {
+        calc_item_values si.sub_item sub_item_map seen_ids;
+
+        match si.unit
+            "p" => {
+                add_g_of_item_to
+                    item
+                    si.sub_item
+                    si.sub_item.amount * si.amount;
+            }
+            "g" => {
+                add_g_of_item_to item si.sub_item si.amount;
+            }
+            { std:displayln "WARN: Unknown sub item unit: " si };
+    };
+};
+
+!calc_all_item_values = {!(items, sub_item_map) = @;
+    iter i items {
+        !seen_ids = ${};
+        calc_item_values i.0 sub_item_map seen_ids;
+    };
+    items
+};
+
 !:global req = {
     !(method, path, data, url, qp) = @;
 
@@ -29,15 +86,45 @@
         match t
             $r#GET\:\/fitness\/search\/last# => { return :from_req $["ok"]; }
             $r#GET\:\/items# => {
+                ? item_cache ~ return item_cache;
+                !items = db:exec $q"SELECT * from item";
+                .items = $@m iter i items { $+ i.id i; };
+
+                !sub_items = db:exec $q"SELECT * from sub_items";
+                !sub_item_map = $@m iter si sub_items {
+                    si.sub_item = items.(si.item_id);
+                    ? $@@.(si.id) {
+                        std:push $@@.(si.id) si;
+                    } {
+                        $+ si.id $[si];
+                    };
+                };
+                .item_cache = calc_all_item_values items sub_item_map;
+                return item_cache;
             }
             (m $r#GET\:\/day\/(^$+[0-9]\-$+[0-9]\-$+[0-9])#) => {
                 std:displayln "GET DAY" $\.m.1;
-                !day   = db:exec $q"SELECT j.* FROM journal j WHERE SUBSTR(date,1,10) = ?" $\.m.1;
+                !day = db:exec $q"SELECT j.* FROM journal j WHERE deleted = 0 AND SUBSTR(date,1,10) = ?" $\.m.1;
                 .day = day.0;
                 ? day {
-                    !meals = db:exec $q"SELECT jm.* FROM journal_meals jm     WHERE jm.id = ?" day.id;
-                    !drink = db:exec $q"SELECT jd.* FROM journal_drink jd     WHERE jd.id = ?" day.id;
-                    !train = db:exec $q"SELECT jt.* FROM journal_trainings jt WHERE jt.id = ?" day.id;
+                    !meals = unwrap ~ db:exec $q"
+                        SELECT
+                            jm.*,
+                            it.name         AS item_name,
+                            it.unit         AS item_unit,
+                            it.amount       AS item_amount,
+                            it.amount_vals  AS item_amount_vals,
+                            it.kcal         AS item_kcal,
+                            it.carbs        AS item_carbs,
+                            it.fat          AS item_fat,
+                            it.protein      AS item_protein
+                        FROM journal_meals jm
+                        LEFT JOIN item it ON it.id = jm.item_id
+                        WHERE jm.id = ?
+                        ORDER BY ctime ASC
+                    " day.id;
+                    !drink = unwrap ~ db:exec $q"SELECT jd.* FROM journal_drink jd     WHERE jd.id = ? ORDER BY ctime ASC" day.id;
+                    !train = unwrap ~ db:exec $q"SELECT jt.* FROM journal_trainings jt WHERE jt.id = ? ORDER BY ctime ASC" day.id;
                     day.meals = meals;
                     day.drink = drink;
                     day.train = train;
@@ -45,11 +132,6 @@
                 } {
                     return $["missing"];
                 }
-#                !
-#                    LEFT JOIN journal_meals     jm ON j.id = jm.id
-#                    LEFT JOIN journal_drink     jd ON j.id = jd.id
-#                    LEFT JOIN journal_trainings jt ON j.id = jt.id
-#                ";
             }
             $e $["No URL Handler!", t];
     };
