@@ -430,8 +430,16 @@ var Layout = {
     }
 };
 
-m.route(document.body, '/date', {
-    '/date': {
+m.route(document.body, '/today', {
+    '/date/:date': {
+        render: function(vn) {
+            return m(Layout, {
+                center:
+                    m(JournalDayView, { date_str: vn.attrs.date }),
+            })
+        },
+    },
+    '/today': {
         render: function() {
             return m(Layout, {
                 center:

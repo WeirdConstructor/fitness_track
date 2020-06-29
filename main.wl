@@ -28,6 +28,29 @@
         !t = std:str:cat method ":" path;
         match t
             $r#GET\:\/fitness\/search\/last# => { return :from_req $["ok"]; }
+            $r#GET\:\/items# => {
+            }
+            (m $r#GET\:\/day\/(^$+[0-9]\-$+[0-9]\-$+[0-9])#) => {
+                std:displayln "GET DAY" $\.m.1;
+                !day   = db:exec $q"SELECT j.* FROM journal j WHERE SUBSTR(date,1,10) = ?" $\.m.1;
+                .day = day.0;
+                ? day {
+                    !meals = db:exec $q"SELECT jm.* FROM journal_meals jm     WHERE jm.id = ?" day.id;
+                    !drink = db:exec $q"SELECT jd.* FROM journal_drink jd     WHERE jd.id = ?" day.id;
+                    !train = db:exec $q"SELECT jt.* FROM journal_trainings jt WHERE jt.id = ?" day.id;
+                    day.meals = meals;
+                    day.drink = drink;
+                    day.train = train;
+                    return day;
+                } {
+                    return $["missing"];
+                }
+#                !
+#                    LEFT JOIN journal_meals     jm ON j.id = jm.id
+#                    LEFT JOIN journal_drink     jd ON j.id = jd.id
+#                    LEFT JOIN journal_trainings jt ON j.id = jt.id
+#                ";
+            }
             $e $["No URL Handler!", t];
     };
 
