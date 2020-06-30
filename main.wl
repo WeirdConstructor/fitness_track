@@ -47,7 +47,7 @@
     !sub_items = sub_item_map.(item.id);
     ? not[sub_items] \return $n;
 
-    item.amount_vals = 10000;
+    item.amount_vals = 10000;   # TODO : Think about sum of g of the meal?!
     item.kcal        = 0;
     item.carbs       = 0;
     item.fat         = 0;
@@ -78,6 +78,60 @@
     items
 };
 
+!get_items = {
+    ? item_cache ~ return item_cache;
+    !items = db:exec $q"SELECT * from item";
+    .items = $@m iter i items { $+ i.id i; };
+
+    !sub_items = db:exec $q"SELECT * from sub_items";
+    !sub_item_map = $@m iter si sub_items {
+        si.sub_item = items.(si.item_id);
+        ? $@@.(si.id) {
+            std:push $@@.(si.id) si;
+        } {
+            $+ si.id $[si];
+        };
+    };
+    .item_cache = calc_all_item_values items sub_item_map;
+    item_cache
+};
+
+!process_meals_values = {!(meals) = @;
+    !items = get_items[];
+
+    iter m meals {
+        m.item = items.(m.item_id);
+        !base_g = m.item.amount_vals;
+
+        match m.unit
+            "p" => {
+                match m.item.unit
+                    "p" => {
+                        # TODO FIX `* base_g` it does not seem correct.
+                        # we should calculate the actual grams in get_items[].
+
+                        add_scaled_value m m.item :kcal    m.amount * base_g base_g;
+                        add_scaled_value m m.item :carbs   m.amount * base_g base_g;
+                        add_scaled_value m m.item :fat     m.amount * base_g base_g;
+                        add_scaled_value m m.item :protein m.amount * base_g base_g;
+                    }
+                    "g" => {
+                        add_scaled_value m m.item :kcal    m.amount * m.item.amount base_g;
+                        add_scaled_value m m.item :carbs   m.amount * m.item.amount base_g;
+                        add_scaled_value m m.item :fat     m.amount * m.item.amount base_g;
+                        add_scaled_value m m.item :protein m.amount * m.item.amount base_g;
+                    }
+            }
+            "g" => {
+                add_scaled_value m m.item :kcal    m.amount base_g;
+                add_scaled_value m m.item :carbs   m.amount base_g;
+                add_scaled_value m m.item :fat     m.amount base_g;
+                add_scaled_value m m.item :protein m.amount base_g;
+            }
+            { std:displayln "WARN: Unknown meal unit: " m.unit };
+    };
+};
+
 !:global req = {
     !(method, path, data, url, qp) = @;
 
@@ -85,49 +139,20 @@
         !t = std:str:cat method ":" path;
         match t
             $r#GET\:\/fitness\/search\/last# => { return :from_req $["ok"]; }
-            $r#GET\:\/items# => {
-                ? item_cache ~ return item_cache;
-                !items = db:exec $q"SELECT * from item";
-                .items = $@m iter i items { $+ i.id i; };
-
-                !sub_items = db:exec $q"SELECT * from sub_items";
-                !sub_item_map = $@m iter si sub_items {
-                    si.sub_item = items.(si.item_id);
-                    ? $@@.(si.id) {
-                        std:push $@@.(si.id) si;
-                    } {
-                        $+ si.id $[si];
-                    };
-                };
-                .item_cache = calc_all_item_values items sub_item_map;
-                return item_cache;
-            }
+            $r#GET\:\/items# => { return get_items[]; }
             (m $r#GET\:\/day\/(^$+[0-9]\-$+[0-9]\-$+[0-9])#) => {
                 std:displayln "GET DAY" $\.m.1;
                 !day = db:exec $q"SELECT j.* FROM journal j WHERE deleted = 0 AND SUBSTR(date,1,10) = ?" $\.m.1;
                 .day = day.0;
                 ? day {
-                    !meals = unwrap ~ db:exec $q"
-                        SELECT
-                            jm.*,
-                            it.name         AS item_name,
-                            it.unit         AS item_unit,
-                            it.amount       AS item_amount,
-                            it.amount_vals  AS item_amount_vals,
-                            it.kcal         AS item_kcal,
-                            it.carbs        AS item_carbs,
-                            it.fat          AS item_fat,
-                            it.protein      AS item_protein
-                        FROM journal_meals jm
-                        LEFT JOIN item it ON it.id = jm.item_id
-                        WHERE jm.id = ?
-                        ORDER BY ctime ASC
-                    " day.id;
+                    !meals = unwrap ~ db:exec $q"SELECT jm.* FROM journal_meals jm     WHERE jm.id = ?  ORDER BY ctime ASC" day.id;
                     !drink = unwrap ~ db:exec $q"SELECT jd.* FROM journal_drink jd     WHERE jd.id = ? ORDER BY ctime ASC" day.id;
                     !train = unwrap ~ db:exec $q"SELECT jt.* FROM journal_trainings jt WHERE jt.id = ? ORDER BY ctime ASC" day.id;
                     day.meals = meals;
                     day.drink = drink;
                     day.train = train;
+
+                    process_meals_values day.meals;
                     return day;
                 } {
                     return $["missing"];
@@ -264,3 +289,4 @@
 };
 
 setup_db[];
+std:displayln local_endpoint[];
