@@ -42,11 +42,54 @@ class JournalDay {
     }
 
     load() {
+        let self = this;
         m.request({ method: "GET", url: "/day/" + get_day_fmt(this.date) })
          .then(function(data) {
+            self.data = data;
             console.log("DATA:", data);
          })
          .catch(http_err)
+    }
+
+    goals() {
+        if (this.data == null) {
+            return null;
+        }
+        let sum_water_ml = 0;
+        let sum_kcal     = 0;
+        let sum_carbs    = 0;
+        let sum_fat      = 0;
+        let sum_protein  = 0;
+
+        this.data.drink.forEach(drink => sum_water_ml += drink.amount_ml);
+        this.data.meals.forEach(function (meal) {
+            sum_kcal    += meal.kcal;
+            sum_carbs   += meal.carbs;
+            sum_fat     += meal.fat;
+            sum_protein += meal.protein;
+        });
+        let result = {
+            goals: {
+                kcal:     Math.round(this.data.goal_kcal    / 100),
+                carbs:    Math.round(this.data.goal_carbs   / 100),
+                fat:      Math.round(this.data.goal_fat     / 100),
+                protein:  Math.round(this.data.goal_protein / 100),
+                water_ml: this.data.goal_water_ml,
+            },
+        };
+        result.current = {
+            kcal_p:     Math.round((sum_kcal     ) / result.goals.kcal),
+            carbs_p:    Math.round((sum_carbs    ) / result.goals.carbs),
+            fat_p:      Math.round((sum_fat      ) / result.goals.fat),
+            protein_p:  Math.round((sum_protein  ) / result.goals.protein),
+            water_ml_p: Math.round((sum_water_ml * 100) / result.goals.water_ml),
+            kcal:       Math.round(sum_kcal     / 100),
+            carbs:      Math.round(sum_carbs    / 100),
+            fat:        Math.round(sum_fat      / 100),
+            protein:    Math.round(sum_protein  / 100),
+            water_ml:   Math.round(sum_water_ml),
+        };
+        return result;
     }
 
     get_date() { return this.date }

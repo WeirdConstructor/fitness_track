@@ -409,8 +409,40 @@ class JournalDayView {
     oninit(vn) {
         STATE.load_current_day(vn.attrs.date_str);
     }
+
+    make_goal(key, unit, data) {
+        return m("tr", [
+            m("th", key),
+            m("td.has-text-right", data.goals[key] + " " + unit),
+            m("td.has-text-right", data.current[key] + " " + unit),
+            m("td.has-text-right", data.current[key + "_p"] + " %"),
+        ])
+    }
+
     view() {
-        return m("div", "X:" + STATE.get_current_day().get_date())
+        let goal_data = STATE.get_current_day().goals();
+        if (goal_data == null) {
+            return m("progress.progress.is-large.is-info", { max: 100 }, "50%");
+        }
+
+        return m("div", [
+            m("table.table.is-striped.is-narrow", [
+                m("thead",
+                    m("tr", [
+                        m("th", ""),
+                        m("th", "goal"),
+                        m("th", "current"),
+                        m("th", "%"),
+                    ])),
+                m("tbody", [
+                    this.make_goal("kcal",     "",   goal_data),
+                    this.make_goal("carbs",    "g",  goal_data),
+                    this.make_goal("fat",      "g",  goal_data),
+                    this.make_goal("protein",  "g",  goal_data),
+                    this.make_goal("water_ml", "ml", goal_data),
+                ]),
+            ]),
+        ]); // "X:" + STATE.get_current_day().get_date())
     }
 }
 
