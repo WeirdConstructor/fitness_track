@@ -377,24 +377,28 @@ class NavbarView {
                         m("div.buttons", [
                             m("a.button.is-primary", {
                                 onclick: function(ev) { new_entry(); } },
-                                "New"),
-                            m("a.button.is-light", {
+                                m("span", [
+                                    m("span.icon", m("i.fas.fa-plus")),
+                                    m("span", "water"),
+                                    m("span.icon", m("i.fas.fa-tint"))])),
+                            m("a.button.is-primary", {
                                      onclick: function(ev) { open_diary(); } },
-                                "Diary"),
+                                m("span", [
+                                    m("span.icon", m("i.fas.fa-plus")),
+                                    m("span", "food"),
+                                    m("span.icon", m("i.fas.fa-burn"))])),
+                            m("a.button.is-primary", {
+                                     onclick: function(ev) { open_diary(); } },
+                                m("span", [
+                                    m("span.icon", m("i.fas.fa-plus")),
+                                    m("span", "training"),
+                                    m("span.icon", m("i.fas.fa-dumbbell"))])),
                             m("a.button.is-light", {
                                      onclick: function(ev) { open_diary(1); } },
-                                "Diary+1"),
+                                "Yesterday"),
                             m("a.button.is-light", {
                                      href: "#!/week/" + padl("" + get_week_fmt(), "0", 2) },
                                 "Week"),
-                            m("a.button.is-light", { 
-                                     href: "#!/week/" + padl("" + get_week_fmt(-1), "0", 2) },
-                                "Last Week"),
-                            m("a.button.is-link", { 
-                                     onclick: function(ev) {
-                                        document.getElementById("search").scrollIntoView();
-                                     } },
-                                "Search"),
                         ]))
                 ]),
                 m("div.navbar-end", [ ]),
@@ -410,12 +414,14 @@ class JournalDayView {
         STATE.load_current_day(vn.attrs.date_str);
     }
 
-    make_goal(key, unit, data) {
+    make_goal(key, unit, icon, data) {
         return m("tr", [
+            m("th", m("span.icon", m("i.fas." + icon))),
             m("th", key),
-            m("td.has-text-right", data.goals[key] + " " + unit),
+            m("td.has-text-right", (data.goals[key] - data.current[key]) + " " + unit),
             m("td.has-text-right", data.current[key] + " " + unit),
             m("td.has-text-right", data.current[key + "_p"] + " %"),
+            m("td.has-text-right", data.goals[key] + " " + unit),
         ])
     }
 
@@ -426,20 +432,22 @@ class JournalDayView {
         }
 
         return m("div", [
-            m("table.table.is-striped.is-narrow", [
+            m("table.table.is-striped.is-fullwidth", [
                 m("thead",
                     m("tr", [
-                        m("th", ""),
-                        m("th", "goal"),
-                        m("th", "current"),
-                        m("th", "%"),
+                        m("th.has-text-right", ""),
+                        m("th.has-text-right", ""),
+                        m("th.has-text-right", "left"),
+                        m("th.has-text-right", "current"),
+                        m("th.has-text-right", "goal %"),
+                        m("th.has-text-right", "goal"),
                     ])),
                 m("tbody", [
-                    this.make_goal("kcal",     "",   goal_data),
-                    this.make_goal("carbs",    "g",  goal_data),
-                    this.make_goal("fat",      "g",  goal_data),
-                    this.make_goal("protein",  "g",  goal_data),
-                    this.make_goal("water_ml", "ml", goal_data),
+                    this.make_goal("kcal",     "",   "fa-burn",        goal_data),
+                    this.make_goal("carbs",    "g",  "fa-bread-slice", goal_data),
+                    this.make_goal("fat",      "g",  "fa-cheese",      goal_data),
+                    this.make_goal("protein",  "g",  "fa-dna",         goal_data),
+                    this.make_goal("water_ml", "ml", "fa-tint",        goal_data),
                 ]),
             ]),
         ]); // "X:" + STATE.get_current_day().get_date())
