@@ -393,6 +393,7 @@ class NavbarView {
                                     m("span.icon", m("i.fas.fa-plus")),
                                     m("span", "training"),
                                     m("span.icon", m("i.fas.fa-dumbbell"))])),
+                            m("a.button.is-light", { href: "#/today" }, "Today"),
                             m("a.button.is-light", {
                                      onclick: function(ev) { open_diary(1); } },
                                 "Yesterday"),
@@ -470,6 +471,47 @@ var Layout = {
     }
 };
 
+var TouchNumberInput = {
+    oninit: function(vn) {
+        if (vn.attrs.init != null) {
+            vn.state.num = vn.attrs.init;
+        } else {
+            vn.state.num = 0;
+        }
+    },
+    view: function(vn) {
+        return m("div.panel", [
+            m("p.panel-heading", vn.attrs.title),
+            m("div.panel-block", vn.state.num),
+            m("div.panel-block",
+                m("div.buttons.has-addons.is-centered", [
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num += 1; } }, "+ 1"),
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num += 10; } }, "+ 10"),
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num += 100; } }, "+ 100"),
+                ])),
+            m("div.panel-block",
+                m("div.buttons.has-addons.is-centered", [
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num -= 1; } }, "- 1"),
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num -= 10; } }, "- 10"),
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num -= 100; } }, "- 100"),
+                ])),
+            m("div.panel-block",
+                m("div.buttons.has-addons.is-centered", [
+                    m("button.button.is-primary", {
+                        onclick: function() { vn.attrs.onok(vn.state.num); } }, "Ok"),
+                    m("button.button.is-warning", {
+                        onclick: function() { vn.attrs.oncancel(); } }, "Cancel"),
+                ])),
+        ])
+    },
+};
+
 m.route(document.body, '/today', {
     '/date/:date': {
         render: function(vn) {
@@ -482,8 +524,10 @@ m.route(document.body, '/today', {
     '/today': {
         render: function() {
             return m(Layout, {
-                center:
+                center: m("div", [
+                    m(TouchNumberInput, { init: 120, title: "Test" }),
                     m(JournalDayView, { date_str: get_day_fmt(new Date) }),
+                ]),
             })
         },
     },

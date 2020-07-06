@@ -45,7 +45,11 @@ class JournalDay {
         let self = this;
         m.request({ method: "GET", url: "/day/" + get_day_fmt(this.date) })
          .then(function(data) {
-            self.data = data;
+            if (data[0] == "missing") {
+                self.data = null;
+            } else {
+                self.data = data;
+            }
             console.log("DATA:", data);
          })
          .catch(http_err)
