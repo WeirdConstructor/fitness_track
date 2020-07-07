@@ -512,7 +512,7 @@ var TouchNumberInput = {
     },
 };
 
-class ItemList {
+class ItemSelector {
     oninit() {
         STATE.load_items();
     }
@@ -524,42 +524,51 @@ class ItemList {
             return m("progress.progress.is-large.is-info", { max: 100 }, "50%");
         }
         items.forEach(function(item) {
-            console.log("ITEM: ", item);
             item_rows.push(m("tr", [
+                m("td",
+                    m("button.button.is-primary", {
+                        onclick: function() { vn.attrs.onselect(item); }
+                    }, m("span.fas.fa-plus"))),
                 m("td", item.name),
                 m("td.has-text-right", Math.round(item.amount_vals / 100)),
                 m("td.has-text-right", Math.round(item.amount      / 100)),
-                m("td.has-text-right", [m("span", Math.round(item.kcal / 100)), m("span", " kcal")]),
-                m("td.has-text-right", [m("span", Math.round(item.carbs / 100)), m("span", " g")]),
-                m("td.has-text-right", [m("span", Math.round(item.fat / 100)), m("span", " g")]),
+                m("td.has-text-right", [m("span", Math.round(item.kcal    / 100)), m("span", " kcal")]),
+                m("td.has-text-right", [m("span", Math.round(item.carbs   / 100)), m("span", " g")]),
+                m("td.has-text-right", [m("span", Math.round(item.fat     / 100)), m("span", " g")]),
                 m("td.has-text-right", [m("span", Math.round(item.protein / 100)), m("span", " g")]),
             ]));
         });
-        return m("table.table.is-striped.is-fullwidth", [
-            [m("thead", [
-                m("th.has-text-left", m("span",
-                    [m("span",      "Name")])),
-                m("th.has-text-right", m("span",
-                    [m("span.icon", m("i.fas.fa-balance-scale")),
-                     m("span",      "g")])),
-                m("th.has-text-right", m("span",
-                    [m("span.icon", m("i.fas.fa-balance-scale")),
-                     m("span",      "g/p")])),
-                m("th.has-text-right", m("span",
-                    [m("span.icon", m("i.fas.fa-burn")),
-                     m("span",      "kcal")])),
-                m("th.has-text-right", m("span",
-                    [m("span.icon", m("i.fas.fa-bread-slice")),
-                     m("span",      "carbs")])),
-                m("th.has-text-right", m("span",
-                    [m("span.icon", m("i.fas.fa-cheese")),
-                     m("span",      "fat")])),
-                m("th.has-text-right", m("span",
-                    [m("span.icon", m("i.fas.fa-dna")),
-                     m("span",      "protein")])),
-            ])],
-            [m("tbody", item_rows)],
-        ])
+        return m("div.panel", [
+            m("p.panel-heading", "Select Item"),
+            m("div.panel-block",
+                m("div.table-container",
+                    m("table.table.is-striped", [
+                    [m("thead", [
+                        m("th"),
+                        m("th.has-text-left", m("span",
+                            [m("span",      "Name")])),
+                        m("th.has-text-right", m("span",
+                            [m("span.icon", m("i.fas.fa-balance-scale")),
+                             m("span",      "g")])),
+                        m("th.has-text-right", m("span",
+                            [m("span.icon", m("i.fas.fa-balance-scale")),
+                             m("span",      "g/p")])),
+                        m("th.has-text-right", m("span",
+                            [m("span.icon", m("i.fas.fa-burn")),
+                             m("span",      "kcal")])),
+                        m("th.has-text-right", m("span",
+                            [m("span.icon", m("i.fas.fa-bread-slice")),
+                             m("span",      "carbs")])),
+                        m("th.has-text-right", m("span",
+                            [m("span.icon", m("i.fas.fa-cheese")),
+                             m("span",      "fat")])),
+                        m("th.has-text-right", m("span",
+                            [m("span.icon", m("i.fas.fa-dna")),
+                             m("span",      "protein")])),
+                    ])],
+                    [m("tbody", item_rows)],
+                ])))
+        ]);
     }
 }
 
@@ -577,7 +586,7 @@ m.route(document.body, '/today', {
             return m(Layout, {
                 center: m("div", [
                     m(TouchNumberInput, { init: 120, title: "Test" }),
-                    m(ItemList),
+                    m(ItemSelector),
                     m(JournalDayView, { date_str: get_day_fmt(new Date) }),
                 ]),
             })
