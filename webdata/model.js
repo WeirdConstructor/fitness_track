@@ -50,9 +50,32 @@ class JournalDay {
             } else {
                 self.data = data;
             }
+            self.annotate_meals();
             console.log("DATA:", data);
          })
          .catch(http_err)
+    }
+
+    annotate_meals() {
+        let items = STATE.get_items();
+        this.data.meals.forEach(function(meal) {
+            console.log("ANNOT MEAL:", meal);
+            meal.name = items.item_id_to_name(meal.item_id);
+        });
+    }
+
+    items_view_order() {
+        return this.data.meals
+    }
+
+    cfp_ratios() {
+        let d = this.data;
+        return {
+            kcal:    d.kcal_calc,
+            carbs:   Math.round((d.carbs   * 4.1) / 100),
+            fat:     Math.round((d.fat     * 9.3) / 100),
+            protein: Math.round((d.protein * 4.1) / 100),
+        }
     }
 
     goals() {
@@ -72,6 +95,9 @@ class JournalDay {
             sum_fat     += meal.fat;
             sum_protein += meal.protein;
         });
+
+        let sum_kcal_c = sum_carbs * 4.1 + sum_fat * 9.3 + sum_protein * 4.1;
+
         let result = {
             goals: {
                 kcal:     Math.round(this.data.goal_kcal    / 100),
@@ -82,16 +108,22 @@ class JournalDay {
             },
         };
         result.current = {
-            kcal_p:     Math.round((sum_kcal     ) / result.goals.kcal),
-            carbs_p:    Math.round((sum_carbs    ) / result.goals.carbs),
-            fat_p:      Math.round((sum_fat      ) / result.goals.fat),
-            protein_p:  Math.round((sum_protein  ) / result.goals.protein),
-            water_ml_p: Math.round((sum_water_ml * 100) / result.goals.water_ml),
-            kcal:       Math.round(sum_kcal     / 100),
-            carbs:      Math.round(sum_carbs    / 100),
-            fat:        Math.round(sum_fat      / 100),
-            protein:    Math.round(sum_protein  / 100),
-            water_ml:   Math.round(sum_water_ml),
+            kcal_p:         Math.round((sum_kcal     ) / result.goals.kcal),
+            carbs_p:        Math.round((sum_carbs    ) / result.goals.carbs),
+            fat_p:          Math.round((sum_fat      ) / result.goals.fat),
+
+            protein_c_p:    Math.round((sum_protein * 4.1 * 100) / sum_kcal_c),
+            carbs_c_p:      Math.round((sum_carbs   * 4.1 * 100) / sum_kcal_c),
+            fat_c_p:        Math.round((sum_fat     * 9.3 * 100) / sum_kcal_c),
+
+            protein_p:      Math.round((sum_protein  ) / result.goals.protein),
+            water_ml_p:     Math.round((sum_water_ml * 100) / result.goals.water_ml),
+            kcal:           Math.round(sum_kcal     / 100),
+            kcal_c:         Math.round(sum_kcal_c   / 100),
+            carbs:          Math.round(sum_carbs    / 100),
+            fat:            Math.round(sum_fat      / 100),
+            protein:        Math.round(sum_protein  / 100),
+            water_ml:       Math.round(sum_water_ml),
         };
         return result;
     }
@@ -121,9 +153,17 @@ class Items {
          .catch(http_err)
     }
 
-    in_view_order() {
+    item_id_to_name(id) {
+        if (this.items && this.items.get("" + id)) {
+            return this.items.get("" + id).name;
+        } else {
+            return "?";
+        }
+    }
+
+    items_view_order() {
         let self = this;
-        if (!self.items) {
+        if (!self.lru || !self.items) {
             return null;
         }
 

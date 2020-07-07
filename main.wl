@@ -35,6 +35,13 @@
     item.(key) = item.(key) + ((src_item.(key) * amount_g) / base_g);
 };
 
+!calc_kcal_calc = {!(item) = @;
+    std:num:round ~
+          4.1 * item.carbs
+        + 4.1 * item.protein
+        + 9.3 * item.fat
+};
+
 !add_g_of_item_to = {!(to_item, src_item, amount_g) = @;
     !base_g = src_item.amount_vals;
 
@@ -76,6 +83,8 @@
             }
             { std:displayln "WARN: Unknown sub item unit: " si };
     };
+
+    item.kcal_calc = calc_kcal_calc item;
 };
 
 !calc_all_item_values = {!(items, sub_item_map) = @;
@@ -138,6 +147,9 @@
                 add_scaled_value m m.item :protein m.amount base_g;
             }
             { std:displayln "WARN: Unknown meal unit: " m.unit };
+
+
+        m.kcal_calc = calc_kcal_calc m;
     };
 };
 

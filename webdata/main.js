@@ -415,14 +415,14 @@ class JournalDayView {
         STATE.load_current_day(vn.attrs.date_str);
     }
 
-    make_goal(key, unit, icon, data) {
+    make_goal(key, unit, icon, data, ratio) {
         return m("tr", [
             m("th", m("span.icon", m("i.fas." + icon))),
-            m("th", key),
-            m("td.has-text-right", (data.goals[key] - data.current[key]) + " " + unit),
-            m("td.has-text-right", data.current[key] + " " + unit),
-            m("td.has-text-right", data.current[key + "_p"] + " %"),
-            m("td.has-text-right", data.goals[key] + " " + unit),
+            m("td.has-text-right.nw", (data.goals[key] - data.current[key]) + " " + unit),
+            m("td.has-text-right.nw", data.current[key] + " " + unit),
+            m("td.has-text-right.nw", ratio ? ratio : ""),
+            m("td.has-text-right.nw", data.current[key + "_p"] + " %"),
+            m("td.has-text-right.nw", data.goals[key] + " " + unit),
         ])
     }
 
@@ -432,25 +432,31 @@ class JournalDayView {
             return m("progress.progress.is-large.is-info", { max: 100 }, "50%");
         }
 
+        let cfp_ratios = STATE.get_current_day().cfp_ratios();
+
         return m("div", [
-            m("table.table.is-striped.is-fullwidth", [
+            m("table.table.is-striped.is-fullwidth.is-size-7", [
                 m("thead",
                     m("tr", [
                         m("th.has-text-right", ""),
-                        m("th.has-text-right", ""),
-                        m("th.has-text-right", "left"),
-                        m("th.has-text-right", "current"),
-                        m("th.has-text-right", "goal %"),
-                        m("th.has-text-right", "goal"),
+                        m("th.has-text-right.nw", "left"),
+                        m("th.has-text-right.nw", "sum"),
+                        m("th.has-text-right.nw", "kcal ratio"),
+                        m("th.has-text-right.nw", "goal %"),
+                        m("th.has-text-right.nw", "goal"),
                     ])),
                 m("tbody", [
-                    this.make_goal("kcal",     "",   "fa-burn",        goal_data),
-                    this.make_goal("carbs",    "g",  "fa-bread-slice", goal_data),
-                    this.make_goal("fat",      "g",  "fa-cheese",      goal_data),
-                    this.make_goal("protein",  "g",  "fa-dna",         goal_data),
+                    this.make_goal("kcal",     "",   "fa-burn",        goal_data, goal_data.current.kcal_c),
+                    this.make_goal("carbs",    "g",  "fa-bread-slice", goal_data, goal_data.current.carbs_c_p + " %"),
+                    this.make_goal("fat",      "g",  "fa-cheese",      goal_data, goal_data.current.fat_c_p + " %"),
+                    this.make_goal("protein",  "g",  "fa-dna",         goal_data, goal_data.current.protein_c_p + " %"),
                     this.make_goal("water_ml", "ml", "fa-tint",        goal_data),
                 ]),
             ]),
+            m(ItemSelector, {
+                meal_view: true,
+                item_provider: STATE.get_current_day(),
+            }),
         ]); // "X:" + STATE.get_current_day().get_date())
     }
 }
@@ -513,64 +519,95 @@ var TouchNumberInput = {
 };
 
 class ItemSelector {
-    oninit() {
-        STATE.load_items();
-    }
-
     view(vn) {
         let item_rows = [];
-        let items = STATE.get_items().in_view_order();
+        let items = vn.attrs.item_provider.items_view_order();
         if (!items) {
             return m("progress.progress.is-large.is-info", { max: 100 }, "50%");
         }
+        let action_elem = "span.fas.fa-plus";
+        if (vn.attrs.action == "remove") {
+            action_elem = "span.fas.fa-minus";
+        } else if (vn.attrs.action == "edit") {
+            action_elem = "span.fas.fa-edit";
+        }
+
+        let meal_view = vn.attrs.meal_view;
+
         items.forEach(function(item) {
-            item_rows.push(m("tr", [
+            let tr = [
                 m("td",
                     m("button.button.is-primary", {
                         onclick: function() { vn.attrs.onselect(item); }
-                    }, m("span.fas.fa-plus"))),
+                    }, m(action_elem))),
                 m("td", item.name),
-                m("td.has-text-right", Math.round(item.amount_vals / 100)),
-                m("td.has-text-right", Math.round(item.amount      / 100)),
-                m("td.has-text-right", [m("span", Math.round(item.kcal    / 100)), m("span", " kcal")]),
-                m("td.has-text-right", [m("span", Math.round(item.carbs   / 100)), m("span", " g")]),
-                m("td.has-text-right", [m("span", Math.round(item.fat     / 100)), m("span", " g")]),
-                m("td.has-text-right", [m("span", Math.round(item.protein / 100)), m("span", " g")]),
-            ]));
+            ];
+            if (!meal_view) {
+                tr.push(m("td.has-text-right.nw", Math.round(item.amount_vals / 100)));
+                tr.push(m("td.has-text-right.nw", Math.round(item.amount      / 100)));
+            } else {
+                tr.push(m("td.has-text-right.nw", item.ctime));
+                if (item.unit == "p") {
+                    tr.push(m("td.has-text-right.nw", item.amount));
+                } else {
+                    tr.push(m("td.has-text-right.nw", Math.round(item.amount / 100) + " g"));
+                }
+            }
+            tr.push(m("td.has-text-right.nw", [m("span", Math.round(item.kcal    / 100)), m("span", " kcal")]));
+            tr.push(m("td.has-text-right.nw", [m("span", Math.round(item.carbs   / 100)), m("span", " g")]));
+            tr.push(m("td.has-text-right.nw", [m("span", Math.round(item.fat     / 100)), m("span", " g")]));
+            tr.push(m("td.has-text-right.nw", [m("span", Math.round(item.protein / 100)), m("span", " g")]));
+
+            item_rows.push(m("tr", tr));
         });
+
+        let headers = [
+            m("th"),
+            m("th.has-text-left", m("span",
+                [m("span",      "Name")])),
+        ];
+
+        if (!meal_view) {
+            headers.push(m("th.has-text-right", m("span",
+                [m("span.icon", m("i.fas.fa-balance-scale")),
+                 m("span",      "g")])));
+            headers.push(m("th.has-text-right", m("span",
+                [m("span.icon", m("i.fas.fa-balance-scale")),
+                 m("span",      "g/p")])));
+        } else {
+            headers.push(m("th.has-text-left", m("span",
+                [m("span.icon", m("i.fas.fa-clock"))])));
+            headers.push(m("th.has-text-right", m("span",
+                [m("span.icon", "#/g")])));
+        }
+
+        headers.push(m("th.has-text-right", m("span",
+            [m("span.icon", m("i.fas.fa-burn")),
+             m("span",      "kcal")])));
+        headers.push(m("th.has-text-right", m("span",
+            [m("span.icon", m("i.fas.fa-bread-slice")),
+             m("span",      "carbs")])));
+        headers.push(m("th.has-text-right", m("span",
+            [m("span.icon", m("i.fas.fa-cheese")),
+             m("span",      "fat")])));
+        headers.push(m("th.has-text-right", m("span",
+            [m("span.icon", m("i.fas.fa-dna")),
+             m("span",      "protein")])));
+
+
         return m("div.panel", [
-            m("p.panel-heading", "Select Item"),
+            m("p.panel-heading", vn.attrs.title),
             m("div.panel-block",
-                m("div.table-container",
-                    m("table.table.is-striped", [
-                    [m("thead", [
-                        m("th"),
-                        m("th.has-text-left", m("span",
-                            [m("span",      "Name")])),
-                        m("th.has-text-right", m("span",
-                            [m("span.icon", m("i.fas.fa-balance-scale")),
-                             m("span",      "g")])),
-                        m("th.has-text-right", m("span",
-                            [m("span.icon", m("i.fas.fa-balance-scale")),
-                             m("span",      "g/p")])),
-                        m("th.has-text-right", m("span",
-                            [m("span.icon", m("i.fas.fa-burn")),
-                             m("span",      "kcal")])),
-                        m("th.has-text-right", m("span",
-                            [m("span.icon", m("i.fas.fa-bread-slice")),
-                             m("span",      "carbs")])),
-                        m("th.has-text-right", m("span",
-                            [m("span.icon", m("i.fas.fa-cheese")),
-                             m("span",      "fat")])),
-                        m("th.has-text-right", m("span",
-                            [m("span.icon", m("i.fas.fa-dna")),
-                             m("span",      "protein")])),
-                    ])],
-                    [m("tbody", item_rows)],
-                ])))
+                m("div.table-container.is-fullwidth",
+                    m("table.table.is-striped.is-size-7.is-fullwidth", [
+                        m("thead", headers),
+                        m("tbody", item_rows),
+                    ])))
         ]);
     }
 }
+
+STATE.load_items();
 
 m.route(document.body, '/today', {
     '/date/:date': {
@@ -586,7 +623,7 @@ m.route(document.body, '/today', {
             return m(Layout, {
                 center: m("div", [
                     m(TouchNumberInput, { init: 120, title: "Test" }),
-                    m(ItemSelector),
+                    m(ItemSelector, { action: "add",    item_provider: STATE.get_items() }),
                     m(JournalDayView, { date_str: get_day_fmt(new Date) }),
                 ]),
             })
