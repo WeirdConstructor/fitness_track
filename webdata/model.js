@@ -99,12 +99,57 @@ class JournalDay {
     get_date() { return this.date }
 }
 
+class Items {
+    load() {
+        let self = this;
+        m.request({ method: "GET", url: "/items/last_recently_used" })
+         .then(function(data) {
+            self.lru = new Map;
+            let i = 0;
+            data.forEach(function(id) {
+                self.lru[id] = data.length - i;
+                i++;
+            });
+         })
+         .catch(http_err)
+
+        m.request({ method: "GET", url: "/items" })
+         .then(function(data) {
+            self.items     = new Map(Object.entries(data[0]));
+            self.sub_items = new Map(Object.entries(data[1]));
+         })
+         .catch(http_err)
+    }
+
+    in_view_order() {
+        let self = this;
+        if (!self.items) {
+            return null;
+        }
+
+        let lru_items = [];
+        self.items.forEach(function(item) {
+            lru_items.push(item);
+        });
+        lru_items.sort(function(a, b) { self.lru[b.id] - self.lru[a.id] });
+        return lru_items;
+    }
+}
+
 class State {
     load_current_day(date_str) {
         this.current = new JournalDay();
         this.current.init(date_str);
         this.current.load();
+
     }
+
+    load_items() {
+        this.items = new Items();
+        this.items.load()
+    }
+
+    get_items() { return this.items }
 
     get_current_day() { return this.current }
 }

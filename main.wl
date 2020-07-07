@@ -21,16 +21,24 @@
 #    r.0
 #};
 
-!item_cache = $none;
+!item_cache      = $none;
+!sub_item_cache  = $none;
+!lru_items_cache = $none;
+
+!clear_cache = {
+    .item_cache      = $none;
+    .sub_item_cache  = $none;
+    .lru_items_cache = $none;
+};
 
 !add_scaled_value = {!(item, src_item, key, amount_g, base_g) = @;
     item.(key) = item.(key) + ((src_item.(key) * amount_g) / base_g);
 };
 
 !add_g_of_item_to = {!(to_item, src_item, amount_g) = @;
-    !item_base_g = to_item.amount_vals;
-    !base_g      = src_item.amount_vals;
+    !base_g = src_item.amount_vals;
 
+    to_item.amount_vals += amount_g;
     add_scaled_value to_item src_item :kcal    amount_g base_g;
     add_scaled_value to_item src_item :carbs   amount_g base_g;
     add_scaled_value to_item src_item :fat     amount_g base_g;
@@ -47,7 +55,7 @@
     !sub_items = sub_item_map.(item.id);
     ? not[sub_items] \return $n;
 
-    item.amount_vals = 10000;   # TODO : Think about sum of g of the meal?!
+    item.amount_vals = 0;   # TODO : Think about sum of g of the meal?!
     item.kcal        = 0;
     item.carbs       = 0;
     item.fat         = 0;
@@ -79,7 +87,7 @@
 };
 
 !get_items = {
-    ? item_cache ~ return item_cache;
+    ? item_cache ~ return $p(item_cache, sub_item_cache);
     !items = db:exec $q"SELECT * from item";
     .items = $@m iter i items { $+ i.id i; };
 
@@ -93,11 +101,12 @@
         };
     };
     .item_cache = calc_all_item_values items sub_item_map;
-    item_cache
+    .sub_item_cache = sub_item_map;
+    $p(item_cache, sub_item_map)
 };
 
 !process_meals_values = {!(meals) = @;
-    !items = get_items[];
+    !(items, sub_items) = get_items[];
 
     iter m meals {
         m.item = items.(m.item_id);
@@ -139,6 +148,15 @@
         !t = std:str:cat method ":" path;
         match t
             $r#GET\:\/fitness\/search\/last# => { return :from_req $["ok"]; }
+            $r#GET\:\/items\/last_recently_used# => {
+                ? lru_items_cache { return lru_items_cache };
+                !lru_items = unwrap ~ db:exec
+                    $q"SELECT DISTINCT it.id FROM item it
+                       LEFT JOIN journal_meals jm ON it.id = jm.item_id
+                       ORDER BY jm.ctime DESC";
+                .lru_items_cache = $@v iter i lru_items { $+ i.id };
+                return lru_items_cache;
+            }
             $r#GET\:\/items# => { return get_items[]; }
             (m $r#GET\:\/day\/(^$+[0-9]\-$+[0-9]\-$+[0-9])#) => {
                 std:displayln "GET DAY" $\.m.1;
@@ -148,9 +166,9 @@
                     !meals = unwrap ~ db:exec $q"SELECT jm.* FROM journal_meals jm     WHERE jm.id = ?  ORDER BY ctime ASC" day.id;
                     !drink = unwrap ~ db:exec $q"SELECT jd.* FROM journal_drink jd     WHERE jd.id = ? ORDER BY ctime ASC" day.id;
                     !train = unwrap ~ db:exec $q"SELECT jt.* FROM journal_trainings jt WHERE jt.id = ? ORDER BY ctime ASC" day.id;
-                    day.meals = meals;
-                    day.drink = drink;
-                    day.train = train;
+                    day.meals = ? meals meals $[];
+                    day.drink = ? drink drink $[];
+                    day.train = ? train train $[];
 
                     process_meals_values day.meals;
                     return day;
