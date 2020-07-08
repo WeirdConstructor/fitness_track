@@ -46,7 +46,8 @@ class JournalDay {
         m.request({ method: "GET", url: "/day/" + get_day_fmt(this.date) })
          .then(function(data) {
             if (data[0] == "missing") {
-                self.data = null;
+                self.data = {
+                };
             } else {
                 self.data = data;
             }
@@ -57,6 +58,9 @@ class JournalDay {
     }
 
     annotate_meals() {
+        if (this.data == null) {
+            return;
+        }
         let items = STATE.get_items();
         this.data.meals.forEach(function(meal) {
             console.log("ANNOT MEAL:", meal);
@@ -65,6 +69,9 @@ class JournalDay {
     }
 
     items_view_order() {
+        if (this.data == null) {
+            return null;
+        }
         return this.data.meals
     }
 
@@ -153,12 +160,26 @@ class Items {
          .catch(http_err)
     }
 
-    item_id_to_name(id) {
+    item_by_id(id) {
         if (this.items && this.items.get("" + id)) {
-            return this.items.get("" + id).name;
+            return this.items.get("" + id);
         } else {
-            return "?";
+            return null;
         }
+    }
+
+    sub_items_by_id(id) {
+        if (this.items && this.sub_items.get("" + id)) {
+            return this.sub_items.get("" + id);
+        } else {
+            return null;
+        }
+    }
+
+    item_id_to_name(id) {
+        let item = this.item_by_id(id);
+        if (item) { return item.name; }
+        else      { return "?"; }
     }
 
     items_view_order() {
@@ -187,6 +208,18 @@ class State {
     load_items() {
         this.items = new Items();
         this.items.load()
+    }
+
+    set_current_item_id(id) {
+        this.selected_item_id = id;
+    }
+
+    get_current_item() {
+        if (this.selected_item_id == null) {
+            return null;
+        }
+
+        return this.items[this.selected_item_id];
     }
 
     get_items() { return this.items }

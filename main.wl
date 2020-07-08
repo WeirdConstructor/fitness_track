@@ -185,7 +185,11 @@
                     process_meals_values day.meals;
                     return day;
                 } {
-                    return $["missing"];
+                    return ${
+                        meals = $[],
+                        drink = $[],
+                        train = $[],
+                    };
                 }
             }
             $e $["No URL Handler!", t];

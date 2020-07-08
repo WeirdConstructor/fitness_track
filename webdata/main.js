@@ -518,6 +518,16 @@ var TouchNumberInput = {
     },
 };
 
+class ItemView {
+    view(vn) {
+        let item = STATE.get_items().item_by_id(vn.attrs.id);
+        let subitems = STATE.get_items().sub_items_by_id(vn.attrs.id);
+        console.log("ITEM:", item);
+        console.log("SITEMS:", subitems);
+        return m("div", "ITEMVIEW");
+    }
+}
+
 class ItemSelector {
     view(vn) {
         let item_rows = [];
@@ -622,6 +632,7 @@ m.route(document.body, '/today', {
         render: function() {
             return m(Layout, {
                 center: m("div", [
+                    m(ItemView, { id: 5 }),
                     m(TouchNumberInput, { init: 120, title: "Test" }),
                     m(ItemSelector, { action: "add",    item_provider: STATE.get_items() }),
                     m(JournalDayView, { date_str: get_day_fmt(new Date) }),
