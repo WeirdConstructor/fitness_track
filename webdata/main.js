@@ -294,6 +294,42 @@ function get_week_offs_fmt(week_str, offs) {
     return get_week_fmt(offs, d);
 }
 
+let g_modal_value_input = null;
+
+function input_value(name, init, cb) {
+    g_modal_value_input = {
+        init: init,
+        name: name,
+        cb: cb,
+    };
+}
+
+class ModalValueInput {
+    view(vn) {
+        if (!g_modal_value_input) {
+            return m("span");
+        }
+
+        return m("div", { class: "modal is-active" }, [
+            m("div", { class: "modal-background" }),
+            m("div", { class: "modal-content" }, [
+                m(TouchNumberInput, {
+                    init: g_modal_value_input.init,
+                    title: g_modal_value_input.name,
+                    oncancel: function() { g_modal_value_input = null; },
+                    onok: function(val) {
+                        g_modal_value_input.cb(val);
+                        g_modal_value_input = null;
+                    },
+                })
+            ]),
+            m("button.modal-close.is-large", { ["aria-label"]: "close", onclick: function() {
+                g_modal_value_input = null;
+            } }),
+        ]);
+    }
+}
+
 class ModalView {
     view(vn) {
         if (modal) {
@@ -429,7 +465,7 @@ class JournalDayView {
     view() {
         let goal_data = STATE.get_current_day().goals();
         if (goal_data == null) {
-            return m("progress.progress.is-large.is-info", { max: 100 }, "50%");
+            return mk_progress();
         }
 
         let cfp_ratios = STATE.get_current_day().cfp_ratios();
@@ -467,6 +503,7 @@ var Layout = {
             m(NavbarView),
             m("section.section", { style: "padding-top: 0.5rem" }, [
                 m(ModalView),
+                m(ModalValueInput),
                 m("div.columns.is-12", [
                     m("div.column.is-2"),
                     m("div.column.is-8", vn.attrs.center),
@@ -488,8 +525,8 @@ var TouchNumberInput = {
     view: function(vn) {
         return m("div.panel", [
             m("p.panel-heading", vn.attrs.title),
-            m("div.panel-block", vn.state.num),
-            m("div.panel-block",
+            m("div.panel-block.has-background-white", vn.state.num),
+            m("div.panel-block.has-background-white",
                 m("div.buttons.has-addons.is-centered", [
                     m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num += 1; } }, "+ 1"),
@@ -498,7 +535,7 @@ var TouchNumberInput = {
                     m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num += 100; } }, "+ 100"),
                 ])),
-            m("div.panel-block",
+            m("div.panel-block.has-background-white",
                 m("div.buttons.has-addons.is-centered", [
                     m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num -= 1; } }, "- 1"),
@@ -507,7 +544,7 @@ var TouchNumberInput = {
                     m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num -= 100; } }, "- 100"),
                 ])),
-            m("div.panel-block",
+            m("div.panel-block.has-background-white",
                 m("div.buttons.has-addons.is-centered", [
                     m("button.button.is-primary", {
                         onclick: function() { vn.attrs.onok(vn.state.num); } }, "Ok"),
@@ -518,10 +555,111 @@ var TouchNumberInput = {
     },
 };
 
+function mk_progress() {
+    return m("progress.progress.is-large.is-info", { max: 100 }, "50%");
+}
+
+function s100(d) { return Math.round(d / 100) }
+
 class ItemView {
     view(vn) {
-        let item = STATE.get_items().item_by_id(vn.attrs.id);
-        let subitems = STATE.get_items().sub_items_by_id(vn.attrs.id);
+        if (!vn.attrs.edit) {
+            return mk_progress();
+        }
+
+        let item     = vn.attrs.edit.item;
+        let subitems = vn.attrs.edit.subitems;
+
+        if (!item) {
+            return mk_progress();
+        }
+
+        let headers = [];
+
+        headers.push(m("th.has-text-right", m("span",
+            [m("span.icon", m("i.fas.fa-burn")),
+             m("span",      "kcal")])));
+        headers.push(m("th.has-text-right", m("span",
+            [m("span.icon", m("i.fas.fa-bread-slice")),
+             m("span",      "carbs")])));
+        headers.push(m("th.has-text-right", m("span",
+            [m("span.icon", m("i.fas.fa-cheese")),
+             m("span",      "fat")])));
+        headers.push(m("th.has-text-right", m("span",
+            [m("span.icon", m("i.fas.fa-dna")),
+             m("span",      "protein")])));
+
+
+        let name_elem = [
+            m("span", item.name),
+            m("button.button.is-primary.is-pulled-right.is-small", {
+                onclick: function() {
+                    vn.state.is_name_edit = true;
+                },
+            }, "edit"),
+        ];
+
+        if (vn.state.is_name_edit) {
+            name_elem = [
+                m("input.is-priamry[type=text]", {
+                    oninput: function(e) {
+                        item.name = e.target.value;
+                    },
+                    value: item.name
+                })
+            ];
+        }
+
+        if (subitems && subitems.length > 0) {
+        } else {
+            return m("div.panel",
+                m("div.panel-heading", name_elem),
+                m("div.panel-block",
+                    m("div.table-container",
+                        m("table.table.is-bordered",
+                            m("tbody",
+                                m("tr", m("th", "id"),    m("td", item.id)),
+                                m("tr", m("th", "ctime"), m("td", item.ctime)),
+                                m("tr", m("th", "mtime"), m("td", item.mtime)))))),
+                m("div.panel-block",
+                    m("div.table-container",
+                        m("table.table.is-bordered",
+                            m("thead", headers),
+                            m("tbody",
+                                m("tr",
+                                    m("td.has-text-right", s100(item.kcal)),
+                                    m("td.has-text-right", s100(item.carbs)),
+                                    m("td.has-text-right", s100(item.fat)),
+                                    m("td.has-text-right", s100(item.protein))),
+                                m("tr",
+                                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
+                                        input_value("kcal", s100(item.kcal), function(new_val) {
+                                            item.kcal = new_val * 100;
+                                        });
+                                    } }, "edit")),
+                                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
+                                        input_value("carbs", s100(item.carbs), function(new_val) {
+                                            item.carbs = new_val * 100;
+                                        });
+                                    } }, "edit")),
+                                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
+                                        input_value("fat", s100(item.fat), function(new_val) {
+                                            item.fat = new_val * 100;
+                                        });
+                                    } }, "edit")),
+                                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
+                                        input_value("protein", s100(item.protein), function(new_val) {
+                                            item.protein = new_val * 100;
+                                        });
+                                    } }, "edit"))
+                                ))))),
+                m("div.panel-block",
+                    m("button.button.is-primary", { onclick: function() {
+                        vn.attrs.onsave(vn.attrs.edit);
+                        vn.state.is_name_edit = false;
+                    } }, "save")),
+            );
+        }
         console.log("ITEM:", item);
         console.log("SITEMS:", subitems);
         return m("div", "ITEMVIEW");
@@ -533,7 +671,7 @@ class ItemSelector {
         let item_rows = [];
         let items = vn.attrs.item_provider.items_view_order();
         if (!items) {
-            return m("progress.progress.is-large.is-info", { max: 100 }, "50%");
+            return mk_progress();
         }
         let action_elem = "span.fas.fa-plus";
         if (vn.attrs.action == "remove") {
@@ -553,20 +691,20 @@ class ItemSelector {
                 m("td", item.name),
             ];
             if (!meal_view) {
-                tr.push(m("td.has-text-right.nw", Math.round(item.amount_vals / 100)));
-                tr.push(m("td.has-text-right.nw", Math.round(item.amount      / 100)));
+                tr.push(m("td.has-text-right.nw", s100(item.amount_vals)));
+                tr.push(m("td.has-text-right.nw", s100(item.amount)));
             } else {
                 tr.push(m("td.has-text-right.nw", item.ctime));
                 if (item.unit == "p") {
                     tr.push(m("td.has-text-right.nw", item.amount));
                 } else {
-                    tr.push(m("td.has-text-right.nw", Math.round(item.amount / 100) + " g"));
+                    tr.push(m("td.has-text-right.nw", s100(item.amount) + " g"));
                 }
             }
-            tr.push(m("td.has-text-right.nw", [m("span", Math.round(item.kcal    / 100)), m("span", " kcal")]));
-            tr.push(m("td.has-text-right.nw", [m("span", Math.round(item.carbs   / 100)), m("span", " g")]));
-            tr.push(m("td.has-text-right.nw", [m("span", Math.round(item.fat     / 100)), m("span", " g")]));
-            tr.push(m("td.has-text-right.nw", [m("span", Math.round(item.protein / 100)), m("span", " g")]));
+            tr.push(m("td.has-text-right.nw", [m("span", s100(item.kcal)),    m("span", " kcal")]));
+            tr.push(m("td.has-text-right.nw", [m("span", s100(item.carbs)),   m("span", " g")]));
+            tr.push(m("td.has-text-right.nw", [m("span", s100(item.fat)),     m("span", " g")]));
+            tr.push(m("td.has-text-right.nw", [m("span", s100(item.protein)), m("span", " g")]));
 
             item_rows.push(m("tr", tr));
         });
@@ -608,8 +746,8 @@ class ItemSelector {
         return m("div.panel", [
             m("p.panel-heading", vn.attrs.title),
             m("div.panel-block",
-                m("div.table-container.is-fullwidth",
-                    m("table.table.is-striped.is-size-7.is-fullwidth", [
+                m("div.table-container",
+                    m("table.table.is-striped.is-size-7", [
                         m("thead", headers),
                         m("tbody", item_rows),
                     ])))
@@ -632,9 +770,20 @@ m.route(document.body, '/today', {
         render: function() {
             return m(Layout, {
                 center: m("div", [
-                    m(ItemView, { id: 5 }),
+                    m(ItemView, {
+                        edit: STATE.get_edit_item(),
+                        onsave: function(edit) {
+                            STATE.save_edit_item(edit);
+                        },
+                    }),
                     m(TouchNumberInput, { init: 120, title: "Test" }),
-                    m(ItemSelector, { action: "add",    item_provider: STATE.get_items() }),
+                    m(ItemSelector, {
+                        action: "add",
+                        item_provider: STATE.get_items(),
+                        onselect: function(item) {
+                            STATE.set_current_item_id(item.id);
+                        }
+                    }),
                     m(JournalDayView, { date_str: get_day_fmt(new Date) }),
                 ]),
             })

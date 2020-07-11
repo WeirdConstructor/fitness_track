@@ -214,6 +214,41 @@ class State {
         this.selected_item_id = id;
     }
 
+    get_edit_item() {
+        if (this.selected_item_id == null || this.items == null) {
+            return null;
+        }
+
+        if (this.current_edit && this.current_edit.item.id == this.selected_item_id) {
+            return this.current_edit;
+        } else {
+            this.current_edit = null;
+        }
+
+        let item     = this.items.item_by_id(this.selected_item_id);
+        let subitems = this.items.sub_items_by_id(this.selected_item_id);
+
+        if (!item) {
+            return null;
+        }
+
+        if (subitems) {
+            subitems = subitems.slice(0);
+        }
+
+        this.current_edit = {
+            item:     Object.assign({}, item),
+            subitems: subitems,
+        };
+
+        return this.current_edit;
+    }
+
+
+    save_edit_item(edit) {
+        console.log("SAVE ITEM:", edit);
+    }
+
     get_current_item() {
         if (this.selected_item_id == null) {
             return null;
