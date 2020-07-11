@@ -247,6 +247,7 @@ class State {
 
     save_edit_item(edit) {
         console.log("SAVE ITEM:", edit);
+        this.selected_item_id = null;
     }
 
     get_current_item() {

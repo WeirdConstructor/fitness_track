@@ -294,14 +294,56 @@ function get_week_offs_fmt(week_str, offs) {
     return get_week_fmt(offs, d);
 }
 
+
+let g_modal_item_select = null;
+
+function input_item(cb) {
+    g_modal_item_select = {
+        cb: cb,
+    };
+}
+
 let g_modal_value_input = null;
 
-function input_value(name, init, cb) {
+function input_value(name, init, cb, cancel_cb) {
     g_modal_value_input = {
         init: init,
         name: name,
         cb: cb,
+        cancel_cb: cancel_cb,
     };
+}
+
+
+class ModalItemInput {
+    view(vn) {
+        if (!g_modal_item_select) {
+            return m("span");
+        }
+
+        return m("div", { class: "modal is-active" }, [
+            m("div", { class: "modal-background" }),
+            m("div", { class: "modal-content" }, [
+                m(ItemSelector, {
+                    onselect: function(item) {
+                        let mi = g_modal_item_select;
+                        g_modal_item_select = null;
+
+                        input_value(item.name, s100(item.amount_vals), function(amount) {
+                            item = Object.assign({}, item);
+                            mi.cb(item, amount * 100);
+                        }, function() {
+                            g_modal_item_select = mi;
+                        });
+                    },
+                    item_provider: STATE.get_items(),
+                }),
+            ]),
+            m("button.modal-close.is-large", { ["aria-label"]: "close", onclick: function() {
+                g_modal_item_select = null;
+            } }),
+        ]);
+    }
 }
 
 class ModalValueInput {
@@ -316,7 +358,10 @@ class ModalValueInput {
                 m(TouchNumberInput, {
                     init: g_modal_value_input.init,
                     title: g_modal_value_input.name,
-                    oncancel: function() { g_modal_value_input = null; },
+                    oncancel: function() {
+                        g_modal_value_input.cancel_cb();
+                        g_modal_value_input = null;
+                    },
                     onok: function(val) {
                         g_modal_value_input.cb(val);
                         g_modal_value_input = null;
@@ -324,6 +369,7 @@ class ModalValueInput {
                 })
             ]),
             m("button.modal-close.is-large", { ["aria-label"]: "close", onclick: function() {
+                g_modal_value_input.cancel_cb();
                 g_modal_value_input = null;
             } }),
         ]);
@@ -504,6 +550,7 @@ var Layout = {
             m("section.section", { style: "padding-top: 0.5rem" }, [
                 m(ModalView),
                 m(ModalValueInput),
+                m(ModalItemInput),
                 m("div.columns.is-12", [
                     m("div.column.is-2"),
                     m("div.column.is-8", vn.attrs.center),
@@ -654,10 +701,23 @@ class ItemView {
                                     } }, "edit"))
                                 ))))),
                 m("div.panel-block",
-                    m("button.button.is-primary", { onclick: function() {
-                        vn.attrs.onsave(vn.attrs.edit);
-                        vn.state.is_name_edit = false;
-                    } }, "save")),
+                    m("div.buttons.has-addons.is-centered", [
+                        m("button.button.is-primary", { onclick: function() {
+                            vn.attrs.onsave(vn.attrs.edit);
+                            vn.state.is_name_edit = false;
+                        } }, "save"),
+                        m("button.button.is-primary", { onclick: function() {
+                            input_item(function(item, amount) {
+                                if (!vn.attrs.edit.subitems) {
+                                    vn.attrs.edit.subitems = [];
+                                }
+                                item.amount = amount;
+                                item.unit   = "g";
+                                vn.attrs.edit.subitems.push(item);
+                                vn.attrs.onsave(vn.attrs.edit);
+                            });
+                        } }, "add item")
+                    ])),
             );
         }
         console.log("ITEM:", item);
@@ -745,7 +805,7 @@ class ItemSelector {
 
         return m("div.panel", [
             m("p.panel-heading", vn.attrs.title),
-            m("div.panel-block",
+            m("div.panel-block.has-background-white",
                 m("div.table-container",
                     m("table.table.is-striped.is-size-7", [
                         m("thead", headers),
