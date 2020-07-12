@@ -578,18 +578,34 @@ var TouchNumberInput = {
                     m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num += 1; } }, "+ 1"),
                     m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num += 5; } }, "+ 5"),
+                    m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num += 10; } }, "+ 10"),
                     m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num += 50; } }, "+ 50"),
+                    m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num += 100; } }, "+ 100"),
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num += 500; } }, "+ 500"),
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num += 1000; } }, "+ 1000"),
                 ])),
             m("div.panel-block.has-background-white",
                 m("div.buttons.has-addons.is-centered", [
                     m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num -= 1; } }, "- 1"),
                     m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num -= 5; } }, "- 5"),
+                    m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num -= 10; } }, "- 10"),
                     m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num -= 10; } }, "- 50"),
+                    m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num -= 100; } }, "- 100"),
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num -= 500; } }, "- 500"),
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num -= 1000; } }, "- 1000"),
                 ])),
             m("div.panel-block.has-background-white",
                 m("div.buttons.has-addons.is-centered", [

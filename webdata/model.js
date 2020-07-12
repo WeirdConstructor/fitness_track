@@ -160,6 +160,16 @@ class Items {
          .catch(http_err)
     }
 
+    save_item(item, subitems, done_cb) {
+        m.request({
+            method: "POST",
+            url: "/item",
+            body: [item, subitems],
+        }).then(function(data) {
+            if (done_cb) { done_cb() }
+        }).catch(http_err)
+    }
+
     item_by_id(id) {
         if (this.items && this.items.get("" + id)) {
             return this.items.get("" + id);
@@ -246,8 +256,22 @@ class State {
 
 
     save_edit_item(edit) {
+        let self = this;
         console.log("SAVE ITEM:", edit);
-        this.selected_item_id = null;
+        self.selected_item_id = null;
+        let subitems = [];
+        if (edit.subitems) {
+            edit.subitems.forEach(function(sub_item) {
+                subitems.push({
+                    id:     sub_item.id,
+                    unit:   sub_item.unit,
+                    amount: sub_item.amount
+                });
+            });
+        }
+        self.items.save_item(edit.item, subitems, function() {
+            self.items.load();
+        });
     }
 
     get_current_item() {

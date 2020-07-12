@@ -169,6 +169,55 @@
                 .lru_items_cache = $@v iter i lru_items { $+ i.id };
                 return lru_items_cache;
             }
+            $r#POST\:\/item# => {
+                ? data.0.id &> is_some {
+                    ? data.1 &> len > 0 {
+                        # Update
+                        unwrap ~ db:exec
+                            $q"UPDATE item SET
+                               name=?, ctime=datetime('now'),
+                               amount=1, unit='p', amount_vals=100,
+                               kcal=0, carbs=0, fat=0, protein=0
+                               WHERE id=?"
+                            data.0.name
+                            data.0.id;
+                        unwrap ~ db:exec
+                            $q"DELETE from sub_items WHERE id=?"
+                            data.0.id;
+                        iter subitem data.1 {
+                            unwrap ~ db:exec
+                                $q"INSERT INTO sub_items (id, item_id, unit, amount)
+                                   VALUES(?, ?, ?, ?)"
+                                data.0.id
+                                subitem.id
+                                subitem.unit
+                                subitem.amount;
+                        };
+                    } {
+                        unwrap ~ db:exec
+                            $q"UPDATE item SET
+                               name=?, ctime=datetime('now'),
+                               amount=?, unit=?, amount_vals=?,
+                               kcal=?, carbs=?, fat=?, protein=?
+                               WHERE id=?"
+                            data.0.name
+                            data.0.amount
+                            data.0.unit
+                            data.0.amount_vals
+                            data.0.kcal
+                            data.0.carbs
+                            data.0.fat
+                            data.0.protein
+                            data.0.id;
+                    }
+                } {
+                    # Insert
+                };
+
+                clear_cache[];
+                std:displayln "SAVE ITEM:" data;
+                return $["ok"];
+            }
             $r#GET\:\/items# => { return get_items[]; }
             (m $r#GET\:\/day\/(^$+[0-9]\-$+[0-9]\-$+[0-9])#) => {
                 std:displayln "GET DAY" $\.m.1;
