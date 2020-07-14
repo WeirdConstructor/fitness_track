@@ -637,6 +637,8 @@ class ItemView {
             return mk_progress();
         }
 
+        console.log("EDIT ITEM:", vn.attrs.edit);
+
         let headers = [];
 
         headers.push(m("th.has-text-right", m("span",
@@ -651,6 +653,9 @@ class ItemView {
         headers.push(m("th.has-text-right", m("span",
             [m("span.icon", m("i.fas.fa-dna")),
              m("span",      "protein")])));
+        headers.push(m("th.has-text-right", m("span",
+            [m("span.icon", m("i.fas.fa-balance-scale")),
+             m("span",      "portion g")])));
 
 
         let name_elem = [
@@ -664,7 +669,7 @@ class ItemView {
 
         if (vn.state.is_name_edit) {
             name_elem = [
-                m("input.is-priamry[type=text]", {
+                m("input.is-primary[type=text]", {
                     oninput: function(e) {
                         item.name = e.target.value;
                     },
@@ -673,72 +678,85 @@ class ItemView {
             ];
         }
 
+        let amount_cell = s100(item.amount);
+        let edit_column = null;
+
         if (subitems && subitems.length > 0) {
+            edit_column = [];
+            amount_cell = s100(item.amount_vals);
+
         } else {
-            return m("div.panel",
-                m("div.panel-heading", name_elem),
-                m("div.panel-block",
-                    m("div.table-container",
-                        m("table.table.is-bordered",
-                            m("tbody",
-                                m("tr", m("th", "id"),    m("td", item.id)),
-                                m("tr", m("th", "ctime"), m("td", item.ctime)),
-                                m("tr", m("th", "mtime"), m("td", item.mtime)))))),
-                m("div.panel-block",
-                    m("div.table-container",
-                        m("table.table.is-bordered",
-                            m("thead", headers),
-                            m("tbody",
-                                m("tr",
-                                    m("td.has-text-right", s100(item.kcal)),
-                                    m("td.has-text-right", s100(item.carbs)),
-                                    m("td.has-text-right", s100(item.fat)),
-                                    m("td.has-text-right", s100(item.protein))),
-                                m("tr",
-                                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
-                                        input_value("kcal", s100(item.kcal), function(new_val) {
-                                            item.kcal = new_val * 100;
-                                        });
-                                    } }, "edit")),
-                                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
-                                        input_value("carbs", s100(item.carbs), function(new_val) {
-                                            item.carbs = new_val * 100;
-                                        });
-                                    } }, "edit")),
-                                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
-                                        input_value("fat", s100(item.fat), function(new_val) {
-                                            item.fat = new_val * 100;
-                                        });
-                                    } }, "edit")),
-                                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
-                                        input_value("protein", s100(item.protein), function(new_val) {
-                                            item.protein = new_val * 100;
-                                        });
-                                    } }, "edit"))
-                                ))))),
-                m("div.panel-block",
-                    m("div.buttons.has-addons.is-centered", [
-                        m("button.button.is-primary", { onclick: function() {
-                            vn.attrs.onsave(vn.attrs.edit);
-                            vn.state.is_name_edit = false;
-                        } }, "save"),
-                        m("button.button.is-primary", { onclick: function() {
-                            input_item(function(item, amount) {
-                                if (!vn.attrs.edit.subitems) {
-                                    vn.attrs.edit.subitems = [];
-                                }
-                                item.amount = amount;
-                                item.unit   = "g";
-                                vn.attrs.edit.subitems.push(item);
-                                vn.attrs.onsave(vn.attrs.edit);
-                            });
-                        } }, "add item")
-                    ])),
-            );
+            edit_column =
+                m("tr",
+                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
+                        input_value("kcal", s100(item.kcal), function(new_val) {
+                            item.kcal = new_val * 100;
+                        });
+                    } }, "edit")),
+                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
+                        input_value("carbs", s100(item.carbs), function(new_val) {
+                            item.carbs = new_val * 100;
+                        });
+                    } }, "edit")),
+                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
+                        input_value("fat", s100(item.fat), function(new_val) {
+                            item.fat = new_val * 100;
+                        });
+                    } }, "edit")),
+                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
+                        input_value("protein", s100(item.protein), function(new_val) {
+                            item.protein = new_val * 100;
+                        });
+                    } }, "edit")),
+                    m("td.has-text-centered", m("button.button.is-primary", { onclick: function() {
+                        input_value("protein", s100(item.amount), function(new_val) {
+                            item.amount = new_val * 100;
+                        });
+                    } }, "edit"))
+                );
         }
-        console.log("ITEM:", item);
-        console.log("SITEMS:", subitems);
-        return m("div", "ITEMVIEW");
+
+
+        return m("div.panel",
+            m("div.panel-heading", name_elem),
+            m("div.panel-block",
+                m("div.table-container",
+                    m("table.table.is-bordered",
+                        m("tbody",
+                            m("tr", m("th", "id"),    m("td", item.id)),
+                            m("tr", m("th", "ctime"), m("td", item.ctime)),
+                            m("tr", m("th", "mtime"), m("td", item.mtime)))))),
+            m("div.panel-block",
+                m("div.table-container",
+                    m("table.table.is-bordered",
+                        m("thead", headers),
+                        m("tbody",
+                            m("tr",
+                                m("td.has-text-right", s100(item.kcal)),
+                                m("td.has-text-right", s100(item.carbs)),
+                                m("td.has-text-right", s100(item.fat)),
+                                m("td.has-text-right", s100(item.protein)),
+                                m("td.has-text-right", amount_cell)),
+                            edit_column)))),
+            m("div.panel-block",
+                m("div.buttons.has-addons.is-centered", [
+                    m("button.button.is-primary", { onclick: function() {
+                        vn.attrs.onsave(vn.attrs.edit);
+                        vn.state.is_name_edit = false;
+                    } }, "save"),
+                    m("button.button.is-primary", { onclick: function() {
+                        input_item(function(item, amount) {
+                            if (!vn.attrs.edit.subitems) {
+                                vn.attrs.edit.subitems = [];
+                            }
+                            item.amount = amount;
+                            item.unit   = "g";
+                            vn.attrs.edit.subitems.push(item);
+                            vn.attrs.onsave(vn.attrs.edit);
+                        });
+                    } }, "add item")
+                ])),
+        );
     }
 }
 

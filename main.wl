@@ -32,7 +32,11 @@
 };
 
 !add_scaled_value = {!(item, src_item, key, amount_g, base_g) = @;
-    item.(key) = item.(key) + ((src_item.(key) * amount_g) / base_g);
+    ? base_g <= 0 {
+        item.(key) = item.(key) + src_item.(key);
+    } {
+        item.(key) = item.(key) + ((src_item.(key) * amount_g) / base_g);
+    }
 };
 
 !calc_kcal_calc = {!(item) = @;
