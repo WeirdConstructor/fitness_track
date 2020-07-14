@@ -173,6 +173,14 @@
                 .lru_items_cache = $@v iter i lru_items { $+ i.id };
                 return lru_items_cache;
             }
+            $r#POST\:\/new_item# => {
+                unwrap ~ db:exec
+                    $q"INSERT INTO item (name, kcal, carbs, fat, protein) VALUES('new', 0, 0, 0, 0)";
+                !top_item = unwrap ~ db:exec
+                    $q"SELECT max(id) AS id FROM item";
+                .top_item = top_item.0;
+                return top_item;
+            }
             $r#POST\:\/item# => {
                 ? data.0.id &> is_some {
                     ? data.1 &> len > 0 {
@@ -215,7 +223,7 @@
                             data.0.id;
                     }
                 } {
-                    # Insert
+                    return $["missing"];
                 };
 
                 clear_cache[];

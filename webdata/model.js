@@ -170,6 +170,17 @@ class Items {
         }).catch(http_err)
     }
 
+    new_item(done_cb) {
+        m.request({
+            method: "POST",
+            url: "/new_item",
+            body: [{}],
+        }).then(function(data) {
+            console.log("NEW:", data);
+            if (done_cb) { done_cb(data.id) }
+        }).catch(http_err)
+    }
+
     item_by_id(id) {
         if (this.items && this.items.get("" + id)) {
             return this.items.get("" + id);

@@ -475,6 +475,17 @@ class NavbarView {
                                     m("span.icon", m("i.fas.fa-plus")),
                                     m("span", "training"),
                                     m("span.icon", m("i.fas.fa-dumbbell"))])),
+                            m("a.button.is-info", {
+                                onclick: function(ev) {
+                                   STATE.get_items().new_item(function(id) {
+                                       // TODO: route to /item/id for editing
+                                       console.log("GOT NEW ITEM:", id);
+                                   });
+                                } },
+                                "New Item"),
+                            m("a.button.is-info", {
+                                onclick: function(ev) { href: "#/items" } },
+                                "Browse Items"),
                             m("a.button.is-light", { href: "#/today" }, "Today"),
                             m("a.button.is-light", {
                                      onclick: function(ev) { open_diary(1); } },
@@ -857,6 +868,21 @@ m.route(document.body, '/today', {
             return m(Layout, {
                 center:
                     m(JournalDayView, { date_str: vn.attrs.date }),
+            })
+        },
+    },
+    '/items': {
+        render: function() {
+            return m(Layout, {
+                center: m("div", [
+                    m(ItemSelector, {
+                        action: "edit",
+                        item_provider: STATE.get_items(),
+                        onselect: function(item) {
+                            STATE.set_current_item_id(item.id);
+                        }
+                    }),
+                ]),
             })
         },
     },
