@@ -359,7 +359,9 @@ class ModalValueInput {
                     init: g_modal_value_input.init,
                     title: g_modal_value_input.name,
                     oncancel: function() {
-                        g_modal_value_input.cancel_cb();
+                        if (g_modal_value_input.cancel_cb) {
+                            g_modal_value_input.cancel_cb();
+                        }
                         g_modal_value_input = null;
                     },
                     onok: function(val) {
@@ -369,7 +371,9 @@ class ModalValueInput {
                 })
             ]),
             m("button.modal-close.is-large", { ["aria-label"]: "close", onclick: function() {
-                g_modal_value_input.cancel_cb();
+                if (g_modal_value_input.cancel_cb) {
+                    g_modal_value_input.cancel_cb();
+                }
                 g_modal_value_input = null;
             } }),
         ]);
@@ -475,7 +479,7 @@ class NavbarView {
                                     m("span.icon", m("i.fas.fa-plus")),
                                     m("span", "training"),
                                     m("span.icon", m("i.fas.fa-dumbbell"))])),
-                            m("a.button.is-info", {
+                            m("a.button.is-primay", {
                                 onclick: function(ev) {
                                    STATE.get_items().new_item(function(id) {
                                        // TODO: route to /item/id for editing
@@ -483,9 +487,7 @@ class NavbarView {
                                    });
                                 } },
                                 "New Item"),
-                            m("a.button.is-info", {
-                                onclick: function(ev) { href: "#/items" } },
-                                "Browse Items"),
+                            m("a.button.is-primay", { href: "#/items" }, "Browse Items"),
                             m("a.button.is-light", { href: "#/today" }, "Today"),
                             m("a.button.is-light", {
                                      onclick: function(ev) { open_diary(1); } },
@@ -587,6 +589,8 @@ var TouchNumberInput = {
             m("div.panel-block.has-background-white",
                 m("div.buttons.has-addons.is-centered", [
                     m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num = 0; } }, "= 0"),
+                    m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num += 1; } }, "+ 1"),
                     m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num += 5; } }, "+ 5"),
@@ -603,6 +607,8 @@ var TouchNumberInput = {
                 ])),
             m("div.panel-block.has-background-white",
                 m("div.buttons.has-addons.is-centered", [
+                    m("button.button.is-primary.is-outlined", {
+                        onclick: function() { vn.state.num = 0; } }, "= 0"),
                     m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num -= 1; } }, "- 1"),
                     m("button.button.is-primary.is-outlined", {
@@ -765,7 +771,18 @@ class ItemView {
                             vn.attrs.edit.subitems.push(item);
                             vn.attrs.onsave(vn.attrs.edit);
                         });
-                    } }, "add item")
+                    } }, "add item (g)"),
+                    m("button.button.is-primary", { onclick: function() {
+                        input_item(function(item, amount) {
+                            if (!vn.attrs.edit.subitems) {
+                                vn.attrs.edit.subitems = [];
+                            }
+                            item.amount = amount;
+                            item.unit   = "p";
+                            vn.attrs.edit.subitems.push(item);
+                            vn.attrs.onsave(vn.attrs.edit);
+                        });
+                    } }, "add item (p)"),
                 ])),
         );
     }
