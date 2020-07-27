@@ -641,6 +641,19 @@ function mk_progress() {
 
 function s100(d) { return Math.round(d / 100) }
 
+function subitem_provider(item, subitems) {
+    return {
+        items_view_order: function() {
+            let outitems = [];
+            subitems.forEach(function(subitem) {
+                outitems.push(subitem.sub_item);
+            });
+            console.log("ITEMVIEWOER:", outitems);
+            return outitems;
+        }
+    };
+}
+
 class ItemView {
     view(vn) {
         if (!vn.attrs.edit) {
@@ -697,10 +710,22 @@ class ItemView {
 
         let amount_cell = s100(item.amount);
         let edit_column = null;
+        let items_list = m("div");
 
         if (subitems && subitems.length > 0) {
             edit_column = [];
             amount_cell = s100(item.amount_vals);
+
+            items_list = m("div.panel-block",
+                m(ItemSelector, {
+                    action: "edit",
+                    title: "Sub Items",
+                    item_provider: subitem_provider(item, subitems),
+                    onselect: function(item) {
+                        console.log("SELECTED ITEM BLOCK", item);
+                    }
+                }),
+            );
 
         } else {
             edit_column =
@@ -755,6 +780,7 @@ class ItemView {
                                 m("td.has-text-right", s100(item.protein)),
                                 m("td.has-text-right", amount_cell)),
                             edit_column)))),
+            items_list,
             m("div.panel-block",
                 m("div.buttons.has-addons.is-centered", [
                     m("button.button.is-primary", { onclick: function() {
@@ -879,51 +905,60 @@ class ItemSelector {
 
 STATE.load_items();
 
+function main_layout_wrap(el) {
+    return m(Layout, {
+        center: m("div", el)
+    });
+}
+
 m.route(document.body, '/today', {
     '/date/:date': {
         render: function(vn) {
-            return m(Layout, {
-                center:
-                    m(JournalDayView, { date_str: vn.attrs.date }),
-            })
+            return main_layout_wrap(
+                m(JournalDayView, { date_str: vn.attrs.date }));
+        },
+    },
+    '/item/:id': {
+        render: function(vn) {
+            STATE.set_current_item_id(vn.attrs.id);
+            return main_layout_wrap(
+                m(ItemView, {
+                    edit: STATE.get_edit_item(),
+                    onsave: function(edit) { STATE.save_edit_item(edit); },
+                }));
         },
     },
     '/items': {
         render: function() {
-            return m(Layout, {
-                center: m("div", [
-                    m(ItemSelector, {
-                        action: "edit",
-                        item_provider: STATE.get_items(),
-                        onselect: function(item) {
-                            STATE.set_current_item_id(item.id);
-                        }
-                    }),
-                ]),
-            })
+            return main_layout_wrap(
+                m(ItemSelector, {
+                    action: "edit",
+                    item_provider: STATE.get_items(),
+                    onselect: function(item) {
+                        m.route.set("/item/" + item.id);
+                    }
+                }));
         },
     },
     '/today': {
         render: function() {
-            return m(Layout, {
-                center: m("div", [
-                    m(ItemView, {
-                        edit: STATE.get_edit_item(),
-                        onsave: function(edit) {
-                            STATE.save_edit_item(edit);
-                        },
-                    }),
-                    m(TouchNumberInput, { init: 120, title: "Test" }),
-                    m(ItemSelector, {
-                        action: "add",
-                        item_provider: STATE.get_items(),
-                        onselect: function(item) {
-                            STATE.set_current_item_id(item.id);
-                        }
-                    }),
-                    m(JournalDayView, { date_str: get_day_fmt(new Date) }),
-                ]),
-            })
+            return main_layout_wrap([
+                m(ItemView, {
+                    edit: STATE.get_edit_item(),
+                    onsave: function(edit) {
+                        STATE.save_edit_item(edit);
+                    },
+                }),
+                m(TouchNumberInput, { init: 120, title: "Test" }),
+                m(ItemSelector, {
+                    action: "add",
+                    item_provider: STATE.get_items(),
+                    onselect: function(item) {
+                        STATE.set_current_item_id(item.id);
+                    }
+                }),
+                m(JournalDayView, { date_str: get_day_fmt(new Date) }),
+            ]);
         },
     },
 });
