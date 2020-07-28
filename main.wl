@@ -207,6 +207,9 @@
                         };
                     } {
                         unwrap ~ db:exec
+                            $q"DELETE from sub_items WHERE id=?"
+                            data.0.id;
+                        unwrap ~ db:exec
                             $q"UPDATE item SET
                                name=?, ctime=datetime('now'),
                                amount=?, unit=?, amount_vals=?,

@@ -139,7 +139,7 @@ class JournalDay {
 }
 
 class Items {
-    load() {
+    load(done_cb) {
         let self = this;
         m.request({ method: "GET", url: "/items/last_recently_used" })
          .then(function(data) {
@@ -156,6 +156,9 @@ class Items {
          .then(function(data) {
             self.items     = new Map(Object.entries(data[0]));
             self.sub_items = new Map(Object.entries(data[1]));
+            console.log("RELOAD IT", self.items);
+            console.log("RELOAD SI", self.sub_items);
+            if (done_cb) { done_cb(); }
          })
          .catch(http_err)
     }
@@ -274,14 +277,16 @@ class State {
         if (edit.subitems) {
             edit.subitems.forEach(function(sub_item) {
                 subitems.push({
-                    id:     sub_item.id,
+                    id:     sub_item.item_id,
                     unit:   sub_item.unit,
                     amount: sub_item.amount
                 });
             });
         }
         self.items.save_item(edit.item, subitems, function() {
-            self.items.load();
+            self.items.load(function() {
+                self.current_edit = null;
+            });
         });
     }
 

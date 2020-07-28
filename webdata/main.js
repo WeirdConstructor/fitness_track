@@ -755,6 +755,7 @@ class ItemView {
         if (subitems && subitems.length > 0) {
             edit_column = [];
             amount_cell = s100(item.amount_vals);
+            console.log("SUBITEMS ON EDIT:", subitems);
 
             items_list = m("div.panel-block",
                 m(ItemSelector, {
@@ -777,15 +778,18 @@ class ItemView {
                                         }
                                         si.amount = amount;
                                         vn.attrs.edit.subitems = subitems;
+                                        console.log("SUBITEMS AFTER UPD AMT:", subitems);
                                         vn.attrs.onsave(vn.attrs.edit);
                                     },
                                     function() {
                                         let new_subitems = [];
+                                        console.log("SUBITEMS BEFORE:", subitems);
                                         subitems.forEach(function(si) {
                                             if (si.item_id != item.id) {
                                                 new_subitems.push(si);
                                             }
                                         });
+                                        console.log("SUBITEMS after:", new_subitems);
                                         vn.attrs.edit.subitems = new_subitems;
                                         vn.attrs.onsave(vn.attrs.edit);
                                     });
@@ -860,9 +864,14 @@ class ItemView {
                             if (!vn.attrs.edit.subitems) {
                                 vn.attrs.edit.subitems = [];
                             }
-                            item.amount = amount;
-                            item.unit   = "g";
-                            vn.attrs.edit.subitems.push(item);
+                            let subitem = {
+                                id:         vn.attrs.edit.item.id,
+                                item_id:    item.id,
+                                amount:     amount,
+                                unit:       "g",
+                                sub_item:   item,
+                            };
+                            vn.attrs.edit.subitems.push(subitem);
                             vn.attrs.onsave(vn.attrs.edit);
                         });
                     } }, "add item (g)"),
@@ -871,9 +880,14 @@ class ItemView {
                             if (!vn.attrs.edit.subitems) {
                                 vn.attrs.edit.subitems = [];
                             }
-                            item.amount = amount;
-                            item.unit   = "p";
-                            vn.attrs.edit.subitems.push(item);
+                            let subitem = {
+                                id:         vn.attrs.edit.item.id,
+                                item_id:    item.id,
+                                amount:     amount,
+                                unit:       "p",
+                                sub_item:   item,
+                            };
+                            vn.attrs.edit.subitems.push(subitem);
                             vn.attrs.onsave(vn.attrs.edit);
                         });
                     } }, "add item (p)"),
@@ -898,7 +912,10 @@ class ItemSelector {
 
         let meal_view = vn.attrs.meal_view;
 
+        console.log("ITEMS:", items);
+
         items.forEach(function(item) {
+            console.log("ITEM:", item);
             let tr = [
                 m("td",
                     m("button.button.is-primary", {
