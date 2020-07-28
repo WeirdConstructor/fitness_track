@@ -314,6 +314,17 @@ function input_value(name, init, cb, cancel_cb) {
     };
 }
 
+function input_or_delete_value(name, init, cb, delete_cb, cancel_cb) {
+    g_modal_value_input = {
+        init: init,
+        name: name,
+        with_delete: true,
+        cb: cb,
+        delete_cb: delete_cb,
+        cancel_cb: cancel_cb,
+    };
+}
+
 
 class ModalItemInput {
     view(vn) {
@@ -361,6 +372,13 @@ class ModalValueInput {
                     oncancel: function() {
                         if (g_modal_value_input.cancel_cb) {
                             g_modal_value_input.cancel_cb();
+                        }
+                        g_modal_value_input = null;
+                    },
+                    with_delete: g_modal_value_input.with_delete,
+                    ondelete: function() {
+                        if (g_modal_value_input.delete_cb) {
+                            g_modal_value_input.delete_cb();
                         }
                         g_modal_value_input = null;
                     },
@@ -583,6 +601,15 @@ var TouchNumberInput = {
         }
     },
     view: function(vn) {
+        let delete_btn = m("div");
+
+        if (vn.attrs.with_delete) {
+            delete_btn =
+                m("button.button.is-danger", {
+                    onclick: function() { vn.attrs.ondelete(); } },
+                  "Remove");
+        }
+
         return m("div.panel", [
             m("p.panel-heading", vn.attrs.title),
             m("div.panel-block.has-background-white", vn.state.num),
@@ -624,6 +651,7 @@ var TouchNumberInput = {
                     m("button.button.is-primary.is-outlined", {
                         onclick: function() { vn.state.num -= 1000; } }, "- 1000"),
                 ])),
+            delete_btn,
             m("div.panel-block.has-background-white",
                 m("div.buttons.has-addons.is-centered", [
                     m("button.button.is-primary", {
@@ -652,6 +680,18 @@ function subitem_provider(item, subitems) {
             return outitems;
         }
     };
+}
+
+function item_amt_lbl(item, amount) {
+    if (amount == null) {
+        amount = item.amount;
+    }
+
+    if (item.unit != "p") {
+        return "" + (amount / 100) + " " + item.unit;
+    } else {
+        return "" + amount + " " + item.unit;
+    }
 }
 
 class ItemView {
@@ -719,10 +759,38 @@ class ItemView {
             items_list = m("div.panel-block",
                 m(ItemSelector, {
                     action: "edit",
-                    title: "Sub Items",
+                    title: "Items",
                     item_provider: subitem_provider(item, subitems),
                     onselect: function(item) {
-                        console.log("SELECTED ITEM BLOCK", item);
+                        subitems.forEach(function(si) {
+                            if (si.item_id == item.id) {
+                                let amount = si.amount;
+                                if (si.unit != "p") {
+                                    amount /= 100;
+                                }
+                                input_or_delete_value(
+                                    item.name + " (" + si.unit + " = " + item_amt_lbl(item) + ")",
+                                    amount,
+                                    function(amount) {
+                                        if (si.unit != "p") {
+                                            amount *= 100;
+                                        }
+                                        si.amount = amount;
+                                        vn.attrs.edit.subitems = subitems;
+                                        vn.attrs.onsave(vn.attrs.edit);
+                                    },
+                                    function() {
+                                        let new_subitems = [];
+                                        subitems.forEach(function(si) {
+                                            if (si.item_id != item.id) {
+                                                new_subitems.push(si);
+                                            }
+                                        });
+                                        vn.attrs.edit.subitems = new_subitems;
+                                        vn.attrs.onsave(vn.attrs.edit);
+                                    });
+                            }
+                        });
                     }
                 }),
             );
