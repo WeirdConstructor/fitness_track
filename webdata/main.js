@@ -500,8 +500,7 @@ class NavbarView {
                             m("a.button.is-primay", {
                                 onclick: function(ev) {
                                    STATE.get_items().new_item(function(id) {
-                                       // TODO: route to /item/id for editing
-                                       console.log("GOT NEW ITEM:", id);
+                                       m.route.set("/item/" + id);
                                    });
                                 } },
                                 "New Item"),
@@ -567,7 +566,7 @@ class JournalDayView {
                 ]),
             ]),
             m(ItemSelector, {
-                meal_view: true,
+                mode: "meal",
                 item_provider: STATE.get_current_day(),
             }),
         ]); // "X:" + STATE.get_current_day().get_date())
@@ -605,9 +604,12 @@ var TouchNumberInput = {
 
         if (vn.attrs.with_delete) {
             delete_btn =
-                m("button.button.is-danger", {
-                    onclick: function() { vn.attrs.ondelete(); } },
-                  "Remove");
+                m("div.panel-block.has-background-white",
+                    m("div.buttons.has-addons.is-centered", [
+                        m("button.button.is-danger", {
+                            onclick: function() { vn.attrs.ondelete(); } },
+                          "Remove")
+                    ]));
         }
 
         return m("div.panel", [
@@ -674,7 +676,10 @@ function subitem_provider(item, subitems) {
         items_view_order: function() {
             let outitems = [];
             subitems.forEach(function(subitem) {
-                outitems.push(subitem.sub_item);
+                let it = Object.assign({}, subitem.sub_item);
+                it.amount = subitem.amount;
+                it.unit   = subitem.unit;
+                outitems.push(it);
             });
             console.log("ITEMVIEWOER:", outitems);
             return outitems;
@@ -725,7 +730,7 @@ class ItemView {
              m("span",      "protein")])));
         headers.push(m("th.has-text-right", m("span",
             [m("span.icon", m("i.fas.fa-balance-scale")),
-             m("span",      "portion g")])));
+             m("span",      "g/p")])));
 
 
         let name_elem = [
@@ -761,6 +766,7 @@ class ItemView {
                 m(ItemSelector, {
                     action: "edit",
                     title: "Items",
+                    mode: "subitems",
                     item_provider: subitem_provider(item, subitems),
                     onselect: function(item) {
                         subitems.forEach(function(si) {
@@ -837,9 +843,11 @@ class ItemView {
                 m("div.table-container",
                     m("table.table.is-bordered",
                         m("tbody",
-                            m("tr", m("th", "id"),    m("td", item.id)),
-                            m("tr", m("th", "ctime"), m("td", item.ctime)),
-                            m("tr", m("th", "mtime"), m("td", item.mtime)))))),
+                            m("tr", m("th", "id"),          m("td", item.id)),
+                            m("tr", m("th", "ctime"),       m("td", item.ctime)),
+                            m("tr", m("th", "mtime"),       m("td", item.mtime)),
+                            m("tr", m("th", "p amount (g)"),    m("td", s100(item.amount))),
+                            m("tr", m("th", "amount vals (g)"), m("td", s100(item.amount_vals))))))),
             m("div.panel-block",
                 m("div.table-container",
                     m("table.table.is-bordered",
@@ -883,7 +891,7 @@ class ItemView {
                             let subitem = {
                                 id:         vn.attrs.edit.item.id,
                                 item_id:    item.id,
-                                amount:     amount,
+                                amount:     amount / 100,
                                 unit:       "p",
                                 sub_item:   item,
                             };
@@ -910,7 +918,7 @@ class ItemSelector {
             action_elem = "span.fas.fa-edit";
         }
 
-        let meal_view = vn.attrs.meal_view;
+        let mode = vn.attrs.mode;
 
         console.log("ITEMS:", items);
 
@@ -923,16 +931,22 @@ class ItemSelector {
                     }, m(action_elem))),
                 m("td", item.name),
             ];
-            if (!meal_view) {
-                tr.push(m("td.has-text-right.nw", s100(item.amount_vals)));
-                tr.push(m("td.has-text-right.nw", s100(item.amount)));
-            } else {
+            if (mode == "meal") {
                 tr.push(m("td.has-text-right.nw", item.ctime));
                 if (item.unit == "p") {
                     tr.push(m("td.has-text-right.nw", item.amount));
                 } else {
                     tr.push(m("td.has-text-right.nw", s100(item.amount) + " g"));
                 }
+            } else if (mode == "subitems") {
+                if (item.unit == "p") {
+                    tr.push(m("td.has-text-right.nw", "" + item.amount + " p"));
+                } else {
+                    tr.push(m("td.has-text-right.nw", "" + s100(item.amount) + " g"));
+                }
+            } else {
+                tr.push(m("td.has-text-right.nw", s100(item.amount_vals)));
+                tr.push(m("td.has-text-right.nw", s100(item.amount)));
             }
             tr.push(m("td.has-text-right.nw", [m("span", s100(item.kcal)),    m("span", " kcal")]));
             tr.push(m("td.has-text-right.nw", [m("span", s100(item.carbs)),   m("span", " g")]));
@@ -948,18 +962,22 @@ class ItemSelector {
                 [m("span",      "Name")])),
         ];
 
-        if (!meal_view) {
+        if (mode == "meal") {
+            headers.push(m("th.has-text-left", m("span",
+                [m("span.icon", m("i.fas.fa-clock"))])));
+            headers.push(m("th.has-text-right", m("span",
+                [m("span.icon", "#/g")])));
+        } else if (mode == "subitems") {
+            headers.push(m("th.has-text-right", m("span",
+                [m("span.icon", m("i.fas.fa-balance-scale")),
+                 m("span",      "g|p")])));
+        } else {
             headers.push(m("th.has-text-right", m("span",
                 [m("span.icon", m("i.fas.fa-balance-scale")),
                  m("span",      "g")])));
             headers.push(m("th.has-text-right", m("span",
                 [m("span.icon", m("i.fas.fa-balance-scale")),
                  m("span",      "g/p")])));
-        } else {
-            headers.push(m("th.has-text-left", m("span",
-                [m("span.icon", m("i.fas.fa-clock"))])));
-            headers.push(m("th.has-text-right", m("span",
-                [m("span.icon", "#/g")])));
         }
 
         headers.push(m("th.has-text-right", m("span",

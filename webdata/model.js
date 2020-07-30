@@ -164,23 +164,29 @@ class Items {
     }
 
     save_item(item, subitems, done_cb) {
+        let self = this;
         m.request({
             method: "POST",
             url: "/item",
             body: [item, subitems],
         }).then(function(data) {
-            if (done_cb) { done_cb() }
+            self.load(function() {
+                if (done_cb) { done_cb() }
+            });
         }).catch(http_err)
     }
 
     new_item(done_cb) {
+        let self = this;
+
         m.request({
             method: "POST",
             url: "/new_item",
             body: [{}],
         }).then(function(data) {
-            console.log("NEW:", data);
-            if (done_cb) { done_cb(data.id) }
+            self.load(function() {
+                if (done_cb) { done_cb(data.id) }
+            });
         }).catch(http_err)
     }
 
@@ -235,6 +241,7 @@ class State {
     }
 
     set_current_item_id(id) {
+        console.log("SET CURRENT ITEM ID=", id);
         this.selected_item_id = id;
     }
 

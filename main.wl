@@ -59,7 +59,7 @@
 !calc_item_values = $none;
 
 !calc_item_values = {!(item, sub_item_map, seen_ids) = @;
-    std:displayln "ITEM: " item;
+#    std:displayln "ITEM: " item;
     ? seen_ids.(item.id) \return $n;
     seen_ids.(item.id) = $t;
 
@@ -86,8 +86,12 @@
                 add_g_of_item_to item si.sub_item si.amount;
             }
             { std:displayln "WARN: Unknown sub item unit: " si };
+
+        std:displayln "ITEM[" item.name "] SUBITEM " si;
+        std:displayln "    =>" (item.amount / 100) "g /" (item.kcal / 100) "kcal";
     };
 
+    item.amount = item.amount_vals;
     item.kcal_calc = calc_kcal_calc item;
 };
 
@@ -175,10 +179,12 @@
             }
             $r#POST\:\/new_item# => {
                 unwrap ~ db:exec
-                    $q"INSERT INTO item (name, kcal, carbs, fat, protein) VALUES('new', 0, 0, 0, 0)";
+                    $q"INSERT INTO item (name, kcal, carbs, fat, protein, amount_vals)
+                                  VALUES('new',   0,     0,   0,       0,       10000)";
                 !top_item = unwrap ~ db:exec
                     $q"SELECT max(id) AS id FROM item";
                 .top_item = top_item.0;
+                clear_cache[];
                 return top_item;
             }
             $r#POST\:\/item# => {
@@ -295,7 +301,7 @@
             mtime       TEXT DEFAULT (datetime('now')),
             unit        TEXT DEFAULT 'g',
             amount      INTEGER NOT NULL DEFAULT 100,
-            amount_vals INTEGER NOT NULL DEFAULT 100,
+            amount_vals INTEGER NOT NULL DEFAULT 10000,
             kcal        INTEGER NOT NULL,
             carbs       INTEGER NOT NULL,
             fat         INTEGER NOT NULL,
