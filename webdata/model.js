@@ -86,6 +86,7 @@ class JournalDay {
     }
 
     goals() {
+        console.log("DATA:", this.data);
         if (this.data == null) {
             return null;
         }

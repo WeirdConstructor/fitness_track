@@ -1046,20 +1046,20 @@ m.route(document.body, '/today', {
     '/today': {
         render: function() {
             return main_layout_wrap([
-                m(ItemView, {
-                    edit: STATE.get_edit_item(),
-                    onsave: function(edit) {
-                        STATE.save_edit_item(edit);
-                    },
-                }),
-                m(TouchNumberInput, { init: 120, title: "Test" }),
-                m(ItemSelector, {
-                    action: "add",
-                    item_provider: STATE.get_items(),
-                    onselect: function(item) {
-                        STATE.set_current_item_id(item.id);
-                    }
-                }),
+//                m(ItemView, {
+//                    edit: STATE.get_edit_item(),
+//                    onsave: function(edit) {
+//                        STATE.save_edit_item(edit);
+//                    },
+//                }),
+//                m(TouchNumberInput, { init: 120, title: "Test" }),
+//                m(ItemSelector, {
+//                    action: "add",
+//                    item_provider: STATE.get_items(),
+//                    onselect: function(item) {
+//                        STATE.set_current_item_id(item.id);
+//                    }
+//                }),
                 m(JournalDayView, { date_str: get_day_fmt(new Date) }),
             ]);
         },
